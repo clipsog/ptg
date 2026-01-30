@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zefame - Social Media Booster</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .content {
+            padding: 30px 20px;
+        }
+        
+        .service-group {
+            margin-bottom: 25px;
+        }
+        
+        .service-group h2 {
+            font-size: 18px;
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .service-btn {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .service-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .service-btn:active {
+            transform: translateY(0);
+        }
+        
+        .service-info {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .service-btn:hover .service-info {
+            color: rgba(255,255,255,0.8);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            margin: 50px auto;
+            position: relative;
+        }
+        
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #999;
+            cursor: pointer;
+        }
+        
+        .close:hover {
+            color: #333;
+        }
+        
+        .modal h2 {
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+        
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            display: none;
+        }
+        
+        .result.success {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+        }
+        
+        .result.error {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+        }
+        
+        .result.info {
+            background: #d1ecf1;
+            border: 2px solid #17a2b8;
+            color: #0c5460;
+        }
+        
+        .result h3 {
+            margin-bottom: 10px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .modal-content {
+                padding: 20px;
+                margin: 20px auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚡ Zefame</h1>
+            <p>Social Media Booster</p>
+        </div>
+        
+        <div class="content">
+            <div class="service-group">
+                <h2>📱 TikTok</h2>
+                <button class="service-btn" onclick="openModal('229', 'TikTok Views', 'Enter your TikTok video URL')">
+                    <div>
+                        <div>TikTok Views</div>
+                        <div class="service-info">Cooldown: 5 Minutes</div>
+                    </div>
+                </button>
+                <button class="service-btn" onclick="openModal('232', 'TikTok Likes', 'Enter your TikTok video URL')">
+                    <div>
+                        <div>TikTok Likes</div>
+                        <div class="service-info">Cooldown: 5 Minutes</div>
+                    </div>
+                </button>
+                <button class="service-btn" onclick="openModal('228', 'TikTok Followers', 'Enter your TikTok profile URL')">
+                    <div>
+                        <div>TikTok Followers</div>
+                        <div class="service-info">Cooldown: 24 Hours</div>
+                    </div>
+                </button>
+                <button class="service-btn" onclick="openModal('235', 'TikTok Shares', 'Enter your TikTok video URL')">
+                    <div>
+                        <div>TikTok Shares</div>
+                        <div class="service-info">Cooldown: 1 Hour</div>
+                    </div>
+                </button>
+                <button class="service-btn" onclick="openModal('236', 'TikTok Favorites', 'Enter your TikTok video URL')">
+                    <div>
+                        <div>TikTok Favorites</div>
+                        <div class="service-info">Cooldown: 20 Minutes</div>
+                    </div>
+                </button>
+            </div>
+            
+            <div class="service-group">
+                <h2>📸 Instagram</h2>
+                <button class="service-btn" onclick="openModal('237', 'Instagram Views', 'Enter your Instagram post URL')">
+                    <div>
+                        <div>Instagram Views</div>
+                        <div class="service-info">Cooldown: 5 Minutes</div>
+                    </div>
+                </button>
+                <button class="service-btn" onclick="openModal('234', 'Instagram Likes', 'Enter your Instagram post URL')">
+                    <div>
+                        <div>Instagram Likes</div>
+                        <div class="service-info">Cooldown: 3 Hours</div>
+                    </div>
+                </button>
+                <button class="service-btn" onclick="openModal('233', 'Instagram Followers', 'Enter your Instagram profile URL')">
+                    <div>
+                        <div>Instagram Followers</div>
+                        <div class="service-info">Cooldown: 24 Hours</div>
+                    </div>
+                </button>
+                <button class="service-btn" onclick="openModal('238', 'Instagram Story Views', 'Enter your Instagram profile URL')">
+                    <div>
+                        <div>Instagram Story Views</div>
+                        <div class="service-info">Cooldown: 24 Hours</div>
+                    </div>
+                </button>
+            </div>
+            
+            <div class="service-group">
+                <h2>🐦 Twitter</h2>
+                <button class="service-btn" onclick="openModal('231', 'Twitter Views', 'Enter your Twitter post URL')">
+                    <div>
+                        <div>Twitter Views</div>
+                        <div class="service-info">Cooldown: 20 Minutes</div>
+                    </div>
+                </button>
+            </div>
+            
+            <div class="service-group">
+                <h2>👥 Facebook</h2>
+                <button class="service-btn" onclick="openModal('242', 'Facebook Post Likes', 'Enter your Facebook post URL')">
+                    <div>
+                        <div>Facebook Post Likes</div>
+                        <div class="service-info">Cooldown: 3 Hours</div>
+                    </div>
+                </button>
+                <button class="service-btn" onclick="openModal('244', 'Facebook Followers', 'Enter your Facebook profile URL')">
+                    <div>
+                        <div>Facebook Followers</div>
+                        <div class="service-info">Cooldown: 12 Hours</div>
+                    </div>
+                </button>
+            </div>
+            
+            <div class="service-group">
+                <h2>📺 YouTube</h2>
+                <button class="service-btn" onclick="openModal('246', 'YouTube Likes', 'Enter your YouTube video URL')">
+                    <div>
+                        <div>YouTube Likes</div>
+                        <div class="service-info">Cooldown: 3 Hours</div>
+                    </div>
+                </button>
+            </div>
+            
+            <div class="service-group">
+                <h2>✈️ Telegram</h2>
+                <button class="service-btn" onclick="openModal('248', 'Telegram Views', 'Enter your Telegram post URL')">
+                    <div>
+                        <div>Telegram Views</div>
+                        <div class="service-info">Cooldown: 30 Minutes</div>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modal-title">Place Order</h2>
+            <form id="order-form" onsubmit="submitOrder(event)">
+                <div class="form-group">
+                    <label id="url-label" for="url">URL</label>
+                    <input type="url" id="url" required placeholder="https://...">
+                </div>
+                <button type="submit" class="submit-btn" id="submit-btn">Submit Order</button>
+            </form>
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Processing your order...</p>
+            </div>
+            <div class="result" id="result"></div>
+        </div>
+    </div>
+    
+    <script>
+        let currentServiceId = null;
+        
+        function openModal(serviceId, title, label) {
+            currentServiceId = serviceId;
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('url-label').textContent = label;
+            document.getElementById('url').value = '';
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('result').className = 'result';
+            document.getElementById('modal').style.display = 'block';
+        }
+        
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('submit-btn').disabled = false;
+        }
+        
+        async function submitOrder(event) {
+            event.preventDefault();
+            const url = document.getElementById('url').value;
+            const submitBtn = document.getElementById('submit-btn');
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            
+            submitBtn.disabled = true;
+            loading.style.display = 'block';
+            result.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        service_id: currentServiceId,
+                        url: url
+                    })
+                });
+                
+                const data = await response.json();
+                
+                loading.style.display = 'none';
+                result.style.display = 'block';
+                
+                if (data.status === 'success') {
+                    result.className = 'result success';
+                    result.innerHTML = `
+                        <h3>✓ Success!</h3>
+                        <p>${data.message || 'Order placed successfully!'}</p>
+                        ${data.cooldown ? `<p><strong>Cooldown:</strong> ${data.cooldown}</p>` : ''}
+                    `;
+                } else if (data.status === 'error') {
+                    result.className = 'result error';
+                    result.innerHTML = `
+                        <h3>✗ Error</h3>
+                        <p>${data.message}</p>
+                    `;
+                } else {
+                    result.className = 'result info';
+                    result.innerHTML = `
+                        <h3>Response</h3>
+                        <p>${data.message || 'Request completed'}</p>
+                        ${data.cooldown ? `<p><strong>Cooldown:</strong> ${data.cooldown}</p>` : ''}
+                    `;
+                }
+                
+                submitBtn.disabled = false;
+            } catch (error) {
+                loading.style.display = 'none';
+                result.style.display = 'block';
+                result.className = 'result error';
+                result.innerHTML = `
+                    <h3>✗ Error</h3>
+                    <p>${error.message}</p>
+                `;
+                submitBtn.disabled = false;
+            }
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('modal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>

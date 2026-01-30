@@ -1,0 +1,174 @@
+from flask import Flask, render_template, request, jsonify
+import requests
+import json
+
+app = Flask(__name__)
+
+def parse_response(response):
+    """Parse API response and extract status and cooldown info"""
+    result = {
+        'status': 'unknown',
+        'message': '',
+        'cooldown': None,
+        'raw_response': ''
+    }
+    
+    try:
+        response_text = response.text.strip()
+        result['raw_response'] = response_text
+        
+        # Try to parse as JSON
+        try:
+            data = response.json()
+            if isinstance(data, dict):
+                for key, value in data.items():
+                    key_lower = str(key).lower()
+                    value_str = str(value).lower()
+                    
+                    if any(word in key_lower for word in ['success', 'status', 'order']):
+                        if 'success' in value_str or 'ok' in value_str or 'created' in value_str or 'accepted' in value_str:
+                            result['status'] = 'success'
+                        elif 'error' in value_str or 'fail' in value_str or 'denied' in value_str:
+                            result['status'] = 'failed'
+                        result['message'] = str(value)
+                    elif 'cooldown' in key_lower or 'wait' in key_lower or 'time' in key_lower:
+                        result['cooldown'] = str(value)
+                    elif 'message' in key_lower:
+                        result['message'] = str(value)
+        except:
+            # Not JSON, check text
+            response_text_lower = response_text.lower()
+            if 'success' in response_text_lower or ('order' in response_text_lower and 'created' in response_text_lower):
+                result['status'] = 'success'
+            elif 'error' in response_text_lower or 'failed' in response_text_lower:
+                result['status'] = 'failed'
+            elif 'cooldown' in response_text_lower:
+                result['status'] = 'cooldown'
+                result['cooldown'] = response_text_lower
+        
+        # Check HTTP status
+        if response.status_code == 200 and result['status'] == 'unknown':
+            result['status'] = 'success'
+            result['message'] = 'Request completed successfully'
+        elif response.status_code != 200:
+            result['status'] = 'failed'
+            result['message'] = f'HTTP {response.status_code}'
+            
+    except Exception as e:
+        result['status'] = 'error'
+        result['message'] = str(e)
+    
+    return result
+
+def make_request(service_id, url, vid_id=None, username=None, post_id=None, tweet_id=None, link=None):
+    """Make API request to zefame"""
+    endpoint = 'https://app.zefame.com/api_free.php?action=order'
+    
+    headers = {
+        "accept": "application/json, text/javascript, */*; q=0.01",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US,en;q=0.9",
+        "connection": "keep-alive",
+        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "host": "app.zefame.com",
+        "origin": "https://zefame.com",
+        "referer": "https://zefame.com/",
+        "sec-ch-ua": "\"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"144\", \"Microsoft Edge\";v=\"144\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-site",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0"
+    }
+    
+    payload = {"service": str(service_id), "link": url}
+    
+    # Add service-specific fields
+    if vid_id:
+        payload["videoId"] = vid_id
+    if username:
+        payload["username"] = username
+    if post_id:
+        payload["postId"] = post_id
+    if tweet_id:
+        payload["tweetId"] = tweet_id
+    if link:
+        payload["link"] = link
+    
+    # Add UUIDs based on service
+    uuids = {
+        "229": "8c79ac73-cdc9-4e07-bb0e-9fef32df490b",  # TikTok Views
+        "232": "d306834e-ea98-4d9a-b961-fcb3850ed777",  # TikTok Likes
+        "228": "51f635bc-9dfa-44d2-884b-143a7bf65e82",  # TikTok Followers
+        "235": "5ff7fa13-cc21-4799-9945-fd0daa4ab8e2",  # TikTok Shares
+        "236": "3d5100c2-d588-487f-911e-7d0480b9693e",  # TikTok Favorites
+        "237": "f105daef-f7a2-45a7-b9a2-4f9e0ce1e02e",  # Instagram Views
+        "234": "dc3ec9ae-f285-45d7-a75b-7f98a639b56e",  # Instagram Likes
+        "233": "01766496-0d5a-4679-ac6c-ad9f056c36b8",  # Instagram Followers
+        "238": "5d01c302-81d1-4bf9-ba9c-f21b3cef6073",  # Instagram Story Views
+        "231": "eb12e5db-1b8c-40b9-b5c4-b00f0ce4e924",  # Twitter Views
+        "242": "3c142a02-35ba-408a-8517-3b0c59ee481e",  # Facebook Post Likes
+        "244": "7e08d929-a29e-44d7-9fb8-edd9553653d8",  # Facebook Followers
+        "246": "f0ae8f7f-dc25-4711-9667-1cf384d35214",  # YouTube Likes
+        "248": "b16a3020-40a7-4414-938a-12d9a5c0c698",  # Telegram Views
+    }
+    
+    if str(service_id) in uuids:
+        payload["uuid"] = uuids[str(service_id)]
+    
+    try:
+        r = requests.post(endpoint, headers=headers, data=payload, timeout=30)
+        return parse_response(r)
+    except requests.exceptions.ConnectionError:
+        return {'status': 'error', 'message': 'Could not connect to the server. Please check your internet connection.'}
+    except requests.exceptions.Timeout:
+        return {'status': 'error', 'message': 'Request timed out. Please try again later.'}
+    except Exception as e:
+        return {'status': 'error', 'message': str(e)}
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/api/order', methods=['POST'])
+def create_order():
+    data = request.json
+    service_id = data.get('service_id')
+    url = data.get('url')
+    
+    if not service_id or not url:
+        return jsonify({'status': 'error', 'message': 'Missing service_id or url'}), 400
+    
+    # Extract IDs based on service type
+    vid_id = None
+    username = None
+    post_id = None
+    tweet_id = None
+    
+    if service_id in ['229', '232', '235', '236']:  # TikTok video services
+        vid_id = url.split("/")[-1].rstrip("/").split("?")[0]
+    elif service_id == '228':  # TikTok Followers
+        username = url.split("/")[-1].lstrip("@")
+    elif service_id in ['237', '234']:  # Instagram post services
+        post_id = url.split("/")[-2]
+    elif service_id in ['233', '238']:  # Instagram profile services
+        username = url.split("/")[-1].split("?")[0]
+    elif service_id == '231':  # Twitter
+        tweet_id = url.split("/")[-1].split("?")[0]
+    elif service_id == '242':  # Facebook Post Likes
+        username = url.split("/")[-2].split("?")[0]
+    elif service_id == '244':  # Facebook Followers
+        username = url.split("id=", 1)[1].split("&", 1)[0] if "id=" in url else url.split("/")[-1].split("?")[0]
+    elif service_id == '246':  # YouTube
+        vid_id = url.split("v=")[1].split("&")[0]
+    elif service_id == '248':  # Telegram
+        pass  # No extra ID needed
+    
+    result = make_request(service_id, url, vid_id, username, post_id, tweet_id)
+    return jsonify(result)
+
+if __name__ == '__main__':
+    import os
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
