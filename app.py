@@ -168,7 +168,11 @@ def create_order():
     result = make_request(service_id, url, vid_id, username, post_id, tweet_id)
     return jsonify(result)
 
+# Vercel requires a handler function
+handler = app
+
 if __name__ == '__main__':
     import os
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    port = int(os.environ.get('PORT', 3002))
+    print(f"Starting Flask app on http://0.0.0.0:{port}")
+    app.run(host='0.0.0.0', port=port, debug=True)
