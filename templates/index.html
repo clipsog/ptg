@@ -99,6 +99,25 @@
             color: rgba(255,255,255,0.8);
         }
         
+        .cooldown-status {
+            font-size: 11px;
+            color: #dc3545;
+            font-weight: 600;
+            margin-top: 3px;
+        }
+        
+        .service-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: #f8f9fa;
+        }
+        
+        .service-btn:disabled:hover {
+            background: #f8f9fa;
+            transform: none;
+            box-shadow: none;
+        }
+        
         .modal {
             display: none;
             position: fixed;
@@ -268,108 +287,122 @@
         <div class="content">
             <div class="service-group">
                 <h2>📱 TikTok</h2>
-                <button class="service-btn" onclick="openModal('229', 'TikTok Views', 'Enter your TikTok video URL')">
+                <button class="service-btn" id="btn-229" onclick="openModal('229', 'TikTok Views', 'Enter your TikTok video URL')">
                     <div>
                         <div>TikTok Views</div>
                         <div class="service-info">Cooldown: 5 Minutes</div>
+                        <div class="cooldown-status" id="cooldown-229"></div>
                     </div>
                 </button>
-                <button class="service-btn" onclick="openModal('232', 'TikTok Likes', 'Enter your TikTok video URL')">
+                <button class="service-btn" id="btn-232" onclick="openModal('232', 'TikTok Likes', 'Enter your TikTok video URL')">
                     <div>
                         <div>TikTok Likes</div>
                         <div class="service-info">Cooldown: 5 Minutes</div>
+                        <div class="cooldown-status" id="cooldown-232"></div>
                     </div>
                 </button>
-                <button class="service-btn" onclick="openModal('228', 'TikTok Followers', 'Enter your TikTok profile URL')">
+                <button class="service-btn" id="btn-228" onclick="openModal('228', 'TikTok Followers', 'Enter your TikTok profile URL')">
                     <div>
                         <div>TikTok Followers</div>
                         <div class="service-info">Cooldown: 24 Hours</div>
+                        <div class="cooldown-status" id="cooldown-228"></div>
                     </div>
                 </button>
-                <button class="service-btn" onclick="openModal('235', 'TikTok Shares', 'Enter your TikTok video URL')">
+                <button class="service-btn" id="btn-235" onclick="openModal('235', 'TikTok Shares', 'Enter your TikTok video URL')">
                     <div>
                         <div>TikTok Shares</div>
                         <div class="service-info">Cooldown: 1 Hour</div>
+                        <div class="cooldown-status" id="cooldown-235"></div>
                     </div>
                 </button>
-                <button class="service-btn" onclick="openModal('236', 'TikTok Favorites', 'Enter your TikTok video URL')">
+                <button class="service-btn" id="btn-236" onclick="openModal('236', 'TikTok Favorites', 'Enter your TikTok video URL')">
                     <div>
                         <div>TikTok Favorites</div>
                         <div class="service-info">Cooldown: 20 Minutes</div>
+                        <div class="cooldown-status" id="cooldown-236"></div>
                     </div>
                 </button>
             </div>
             
             <div class="service-group">
                 <h2>📸 Instagram</h2>
-                <button class="service-btn" onclick="openModal('237', 'Instagram Views', 'Enter your Instagram post URL')">
+                <button class="service-btn" id="btn-237" onclick="openModal('237', 'Instagram Views', 'Enter your Instagram post URL')">
                     <div>
                         <div>Instagram Views</div>
                         <div class="service-info">Cooldown: 5 Minutes</div>
+                        <div class="cooldown-status" id="cooldown-237"></div>
                     </div>
                 </button>
-                <button class="service-btn" onclick="openModal('234', 'Instagram Likes', 'Enter your Instagram post URL')">
+                <button class="service-btn" id="btn-234" onclick="openModal('234', 'Instagram Likes', 'Enter your Instagram post URL')">
                     <div>
                         <div>Instagram Likes</div>
                         <div class="service-info">Cooldown: 3 Hours</div>
+                        <div class="cooldown-status" id="cooldown-234"></div>
                     </div>
                 </button>
-                <button class="service-btn" onclick="openModal('233', 'Instagram Followers', 'Enter your Instagram profile URL')">
+                <button class="service-btn" id="btn-233" onclick="openModal('233', 'Instagram Followers', 'Enter your Instagram profile URL')">
                     <div>
                         <div>Instagram Followers</div>
                         <div class="service-info">Cooldown: 24 Hours</div>
+                        <div class="cooldown-status" id="cooldown-233"></div>
                     </div>
                 </button>
-                <button class="service-btn" onclick="openModal('238', 'Instagram Story Views', 'Enter your Instagram profile URL')">
+                <button class="service-btn" id="btn-238" onclick="openModal('238', 'Instagram Story Views', 'Enter your Instagram profile URL')">
                     <div>
                         <div>Instagram Story Views</div>
                         <div class="service-info">Cooldown: 24 Hours</div>
+                        <div class="cooldown-status" id="cooldown-238"></div>
                     </div>
                 </button>
             </div>
             
             <div class="service-group">
                 <h2>🐦 Twitter</h2>
-                <button class="service-btn" onclick="openModal('231', 'Twitter Views', 'Enter your Twitter post URL')">
+                <button class="service-btn" id="btn-231" onclick="openModal('231', 'Twitter Views', 'Enter your Twitter post URL')">
                     <div>
                         <div>Twitter Views</div>
                         <div class="service-info">Cooldown: 20 Minutes</div>
+                        <div class="cooldown-status" id="cooldown-231"></div>
                     </div>
                 </button>
             </div>
             
             <div class="service-group">
                 <h2>👥 Facebook</h2>
-                <button class="service-btn" onclick="openModal('242', 'Facebook Post Likes', 'Enter your Facebook post URL')">
+                <button class="service-btn" id="btn-242" onclick="openModal('242', 'Facebook Post Likes', 'Enter your Facebook post URL')">
                     <div>
                         <div>Facebook Post Likes</div>
                         <div class="service-info">Cooldown: 3 Hours</div>
+                        <div class="cooldown-status" id="cooldown-242"></div>
                     </div>
                 </button>
-                <button class="service-btn" onclick="openModal('244', 'Facebook Followers', 'Enter your Facebook profile URL')">
+                <button class="service-btn" id="btn-244" onclick="openModal('244', 'Facebook Followers', 'Enter your Facebook profile URL')">
                     <div>
                         <div>Facebook Followers</div>
                         <div class="service-info">Cooldown: 12 Hours</div>
+                        <div class="cooldown-status" id="cooldown-244"></div>
                     </div>
                 </button>
             </div>
             
             <div class="service-group">
                 <h2>📺 YouTube</h2>
-                <button class="service-btn" onclick="openModal('246', 'YouTube Likes', 'Enter your YouTube video URL')">
+                <button class="service-btn" id="btn-246" onclick="openModal('246', 'YouTube Likes', 'Enter your YouTube video URL')">
                     <div>
                         <div>YouTube Likes</div>
                         <div class="service-info">Cooldown: 3 Hours</div>
+                        <div class="cooldown-status" id="cooldown-246"></div>
                     </div>
                 </button>
             </div>
             
             <div class="service-group">
                 <h2>✈️ Telegram</h2>
-                <button class="service-btn" onclick="openModal('248', 'Telegram Views', 'Enter your Telegram post URL')">
+                <button class="service-btn" id="btn-248" onclick="openModal('248', 'Telegram Views', 'Enter your Telegram post URL')">
                     <div>
                         <div>Telegram Views</div>
                         <div class="service-info">Cooldown: 30 Minutes</div>
+                        <div class="cooldown-status" id="cooldown-248"></div>
                     </div>
                 </button>
             </div>
@@ -398,7 +431,122 @@
     <script>
         let currentServiceId = null;
         
+        // Cooldown management
+        const defaultCooldowns = {
+            '229': 5,   // TikTok Views - 5 minutes
+            '232': 5,   // TikTok Likes - 5 minutes
+            '228': 1440, // TikTok Followers - 24 hours
+            '235': 60,  // TikTok Shares - 1 hour
+            '236': 20,  // TikTok Favorites - 20 minutes
+            '237': 5,   // Instagram Views - 5 minutes
+            '234': 180, // Instagram Likes - 3 hours
+            '233': 1440, // Instagram Followers - 24 hours
+            '238': 1440, // Instagram Story Views - 24 hours
+            '231': 20,  // Twitter Views - 20 minutes
+            '242': 180, // Facebook Post Likes - 3 hours
+            '244': 720, // Facebook Followers - 12 hours
+            '246': 180, // YouTube Likes - 3 hours
+            '248': 30   // Telegram Views - 30 minutes
+        };
+        
+        function parseCooldownTime(cooldownText) {
+            if (!cooldownText) return null;
+            
+            const text = cooldownText.toLowerCase();
+            let minutes = 0;
+            
+            // Try to extract time from text
+            const hourMatch = text.match(/(\d+)\s*hour/);
+            const minuteMatch = text.match(/(\d+)\s*minute/);
+            const dayMatch = text.match(/(\d+)\s*day/);
+            
+            if (dayMatch) minutes += parseInt(dayMatch[1]) * 1440;
+            if (hourMatch) minutes += parseInt(hourMatch[1]) * 60;
+            if (minuteMatch) minutes += parseInt(minuteMatch[1]);
+            
+            // If we found a number but no unit, assume minutes
+            if (minutes === 0) {
+                const numMatch = text.match(/(\d+)/);
+                if (numMatch) minutes = parseInt(numMatch[1]);
+            }
+            
+            return minutes > 0 ? minutes : null;
+        }
+        
+        function setCooldown(serviceId, cooldownMinutes) {
+            if (!cooldownMinutes) {
+                // Use default cooldown if API didn't provide one
+                cooldownMinutes = defaultCooldowns[serviceId] || 5;
+            }
+            
+            const expiresAt = Date.now() + (cooldownMinutes * 60 * 1000);
+            localStorage.setItem(`cooldown_${serviceId}`, expiresAt.toString());
+            updateCooldownDisplay(serviceId);
+        }
+        
+        function getCooldownRemaining(serviceId) {
+            const expiresAt = localStorage.getItem(`cooldown_${serviceId}`);
+            if (!expiresAt) return null;
+            
+            const remaining = parseInt(expiresAt) - Date.now();
+            return remaining > 0 ? remaining : null;
+        }
+        
+        function formatTimeRemaining(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${seconds}s`;
+            } else {
+                return `${seconds}s`;
+            }
+        }
+        
+        function updateCooldownDisplay(serviceId) {
+            const cooldownEl = document.getElementById(`cooldown-${serviceId}`);
+            const btnEl = document.getElementById(`btn-${serviceId}`);
+            
+            if (!cooldownEl || !btnEl) return;
+            
+            const remaining = getCooldownRemaining(serviceId);
+            
+            if (remaining) {
+                cooldownEl.textContent = `⏱ Available in: ${formatTimeRemaining(remaining)}`;
+                cooldownEl.style.display = 'block';
+                btnEl.disabled = true;
+            } else {
+                cooldownEl.textContent = '';
+                cooldownEl.style.display = 'none';
+                btnEl.disabled = false;
+                localStorage.removeItem(`cooldown_${serviceId}`);
+            }
+        }
+        
+        function updateAllCooldowns() {
+            Object.keys(defaultCooldowns).forEach(serviceId => {
+                updateCooldownDisplay(serviceId);
+            });
+        }
+        
+        // Update cooldowns every second
+        setInterval(updateAllCooldowns, 1000);
+        
+        // Initial update
+        updateAllCooldowns();
+        
         function openModal(serviceId, title, label) {
+            // Check if service is on cooldown
+            const remaining = getCooldownRemaining(serviceId);
+            if (remaining) {
+                alert(`This service is on cooldown. Available in: ${formatTimeRemaining(remaining)}`);
+                return;
+            }
+            
             currentServiceId = serviceId;
             document.getElementById('modal-title').textContent = title;
             document.getElementById('url-label').textContent = label;
@@ -442,6 +590,20 @@
                 loading.style.display = 'none';
                 result.style.display = 'block';
                 
+                // Parse and set cooldown if provided
+                if (data.cooldown && currentServiceId) {
+                    const cooldownMinutes = parseCooldownTime(data.cooldown);
+                    if (cooldownMinutes) {
+                        setCooldown(currentServiceId, cooldownMinutes);
+                    }
+                } else if (data.status === 'success' && currentServiceId) {
+                    // Set default cooldown on success if API didn't provide one
+                    const defaultCooldown = defaultCooldowns[currentServiceId];
+                    if (defaultCooldown) {
+                        setCooldown(currentServiceId, defaultCooldown);
+                    }
+                }
+                
                 if (data.status === 'success') {
                     result.className = 'result success';
                     result.innerHTML = `
@@ -456,6 +618,13 @@
                         <p>${data.message || 'Please wait before placing another order'}</p>
                         ${data.cooldown ? `<p><strong>Wait time:</strong> ${data.cooldown}</p>` : ''}
                     `;
+                    // Set cooldown from API response
+                    if (data.cooldown && currentServiceId) {
+                        const cooldownMinutes = parseCooldownTime(data.cooldown);
+                        if (cooldownMinutes) {
+                            setCooldown(currentServiceId, cooldownMinutes);
+                        }
+                    }
                 } else if (data.status === 'error' || data.status === 'failed') {
                     result.className = 'result error';
                     result.innerHTML = `
