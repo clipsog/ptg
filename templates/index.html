@@ -441,6 +441,73 @@
     <script>
         let currentServiceId = null;
         
+        // TikTok Downloader
+        async function downloadTikTok() {
+            const url = document.getElementById('tiktok-url').value.trim();
+            const resultDiv = document.getElementById('tiktok-result');
+            
+            if (!url) {
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = '<p style="color: #ffeb3b;">⚠️ Please enter a TikTok URL</p>';
+                return;
+            }
+            
+            if (!url.includes('tiktok.com')) {
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = '<p style="color: #ffeb3b;">⚠️ Please enter a valid TikTok URL</p>';
+                return;
+            }
+            
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<p>⏳ Processing...</p>';
+            
+            try {
+                const response = await fetch('/api/tiktok-download', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    resultDiv.innerHTML = `
+                        <div style="color: white;">
+                            <p style="font-weight: 600; margin-bottom: 10px;">✓ Video Ready!</p>
+                            <p style="margin-bottom: 5px;"><strong>Title:</strong> ${data.title || 'N/A'}</p>
+                            <p style="margin-bottom: 10px;"><strong>Author:</strong> ${data.author || 'N/A'}</p>
+                            <a href="${data.video_url}" download style="display: inline-block; padding: 10px 20px; background: white; color: #ff0050; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 10px;">⬇️ Download Video</a>
+                            <br>
+                            <a href="${data.video_url}" target="_blank" style="display: inline-block; padding: 10px 20px; background: rgba(255,255,255,0.3); color: white; border-radius: 8px; text-decoration: none; margin-top: 10px; margin-left: 10px;">🔗 Open in New Tab</a>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div style="color: #ffeb3b;">
+                            <p style="font-weight: 600;">✗ ${data.message}</p>
+                            <p style="margin-top: 10px; font-size: 12px;">Try using: <a href="https://ssstik.io" target="_blank" style="color: white;">ssstik.io</a> or <a href="https://snapany.com/tiktok" target="_blank" style="color: white;">snapany.com</a></p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: #ffeb3b;">✗ Error: ${error.message}</p>`;
+            }
+        }
+        
+        // Allow Enter key to trigger download
+        document.addEventListener('DOMContentLoaded', function() {
+            const tiktokInput = document.getElementById('tiktok-url');
+            if (tiktokInput) {
+                tiktokInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        downloadTikTok();
+                    }
+                });
+            }
+        });
+        
         // Cooldown management
         const defaultCooldowns = {
             '229': 5,   // TikTok Views - 5 minutes
