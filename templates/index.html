@@ -454,20 +454,21 @@
             
             const url = urlInput.value.trim();
             
+            // Always show result div
+            resultDiv.style.display = 'block';
+            resultDiv.style.visibility = 'visible';
+            
             if (!url) {
-                resultDiv.style.display = 'block';
                 resultDiv.innerHTML = '<p style="color: #ffeb3b; margin: 0;">⚠️ Please enter a TikTok URL</p>';
                 return;
             }
             
             if (!url.includes('tiktok.com') && !url.includes('vm.tiktok.com') && !url.includes('vt.tiktok.com')) {
-                resultDiv.style.display = 'block';
                 resultDiv.innerHTML = '<p style="color: #ffeb3b; margin: 0;">⚠️ Please enter a valid TikTok URL</p>';
                 return;
             }
             
-            resultDiv.style.display = 'block';
-            resultDiv.innerHTML = '<p style="margin: 0;">⏳ Processing... Please wait</p>';
+            resultDiv.innerHTML = '<p style="margin: 0; color: white;">⏳ Processing... Please wait</p>';
             
             try {
                 console.log('Sending request for URL:', url); // Debug
@@ -540,20 +541,29 @@
             }
             
             // Ensure button works on mobile and desktop
+            function handleDownload() {
+                console.log('Download triggered!'); // Debug
+                downloadTikTok();
+            }
+            
             downloadBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Button clicked!'); // Debug
-                downloadTikTok();
+                handleDownload();
             });
             
-            // Also add touch event for mobile
-            downloadBtn.addEventListener('touchend', function(e) {
+            // Also add touch event for mobile (use touchstart for better responsiveness)
+            downloadBtn.addEventListener('touchstart', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Button touched!'); // Debug
-                downloadTikTok();
-            });
+                handleDownload();
+            }, { passive: false });
+            
+            // Fallback: direct onclick (for older browsers)
+            downloadBtn.onclick = function(e) {
+                e.preventDefault();
+                handleDownload();
+            };
         });
         
         // Cooldown management
