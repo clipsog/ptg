@@ -34,7 +34,8 @@ if (!url) {
         
         if (data.status === 'success' && data.result) {
             const result = data.result;
-            const videoUrl = result.video?.downloadAddr?.[0] || result.video?.playAddr?.[0];
+            // Prefer playAddr (CDN URL) over downloadAddr (API endpoint) for direct MP4
+            const videoUrl = result.video?.playAddr?.[0] || result.video?.downloadAddr?.[0];
             
             if (videoUrl) {
                 console.log(JSON.stringify({
