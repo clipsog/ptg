@@ -194,7 +194,19 @@ def make_request(service_id, url, vid_id=None, username=None, post_id=None, twee
         payload["uuid"] = uuids[str(service_id)]
     
     try:
+        # Make request with automatic decompression
         r = requests.post(endpoint, headers=headers, data=payload, timeout=30)
+        
+        # Ensure response is properly decoded
+        # Requests should handle gzip automatically, but let's be explicit
+        if r.headers.get('content-encoding') == 'gzip':
+            import gzip
+            try:
+                r._content = gzip.decompress(r.content)
+                r._content_consumed = True
+            except:
+                pass
+        
         return parse_response(r)
     except requests.exceptions.ConnectionError:
         return {'status': 'error', 'message': 'Could not connect to the server. Please check your internet connection.'}
