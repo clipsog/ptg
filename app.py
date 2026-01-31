@@ -221,7 +221,7 @@ def index():
 
 @app.route('/api/tiktok-download', methods=['POST'])
 def tiktok_download():
-    """Download TikTok video without watermark using @tobyg74/tiktok-api-dl"""
+    """Download TikTok video without watermark using public APIs"""
     try:
         data = request.json
         if not data:
@@ -232,57 +232,102 @@ def tiktok_download():
         if not url:
             return jsonify({'status': 'error', 'message': 'Missing URL'}), 400
         
-        # Use Node.js package via subprocess
+        # Try multiple public APIs (same as the HTML file uses)
+        apis = [
+            f'https://api.tiklydown.eu.org/api/download?url={requests.utils.quote(url)}',
+            f'https://www.tikwm.com/api/?url={requests.utils.quote(url)}',
+        ]
+        
+        for api_url in apis:
+            try:
+                response = requests.get(
+                    api_url,
+                    headers={
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                        'Accept': 'application/json',
+                    },
+                    timeout=20
+                )
+                
+                if response.status_code == 200:
+                    try:
+                        api_data = response.json()
+                        
+                        # Handle different API response formats
+                        video_url = None
+                        title = 'TikTok Video'
+                        author = 'Unknown'
+                        thumbnail = None
+                        
+                        # tiklydown format
+                        if 'video' in api_data:
+                            video_url = api_data['video']
+                            title = api_data.get('title', title)
+                            if 'author' in api_data:
+                                author = api_data['author'].get('nickname', api_data['author'].get('unique_id', 'Unknown'))
+                            thumbnail = api_data.get('cover')
+                        
+                        # tikwm format
+                        elif 'data' in api_data:
+                            data_obj = api_data['data']
+                            video_url = data_obj.get('play') or data_obj.get('video')
+                            title = data_obj.get('title', title)
+                            if 'author' in data_obj:
+                                author = data_obj['author'].get('nickname', data_obj['author'].get('unique_id', 'Unknown'))
+                            thumbnail = data_obj.get('cover')
+                        
+                        # Direct video/play fields
+                        elif 'play' in api_data:
+                            video_url = api_data['play']
+                            title = api_data.get('title', title)
+                            if 'author' in api_data:
+                                author = api_data['author'].get('nickname', api_data['author'].get('unique_id', 'Unknown'))
+                        
+                        if video_url:
+                            return jsonify({
+                                'status': 'success',
+                                'video_url': video_url,
+                                'title': title,
+                                'author': author,
+                                'thumbnail': thumbnail
+                            })
+                    except (json.JSONDecodeError, KeyError) as e:
+                        continue
+                        
+            except (requests.exceptions.RequestException, Exception) as e:
+                continue
+        
+        # If all APIs fail, try Node.js as fallback
         import subprocess
         import os
         
         script_path = os.path.join(os.path.dirname(__file__), 'tiktok_downloader.js')
         
-        try:
-            result = subprocess.run(
-                ['node', script_path, url],
-                capture_output=True,
-                text=True,
-                timeout=30,
-                cwd=os.path.dirname(__file__)
-            )
-            
-            if result.returncode == 0:
-                try:
-                    response_data = json.loads(result.stdout.strip())
-                    return jsonify(response_data)
-                except json.JSONDecodeError:
-                    return jsonify({
-                        'status': 'error',
-                        'message': 'Failed to parse response. Please try: https://ssstik.io or https://snapany.com/tiktok'
-                    }), 200
-            else:
-                # Try to parse error from stderr
-                error_msg = result.stderr.strip() or result.stdout.strip()
-                try:
-                    error_data = json.loads(error_msg)
-                    return jsonify(error_data)
-                except:
-                    return jsonify({
-                        'status': 'error',
-                        'message': f'Download failed: {error_msg[:100]}. Please try: https://ssstik.io or https://snapany.com/tiktok'
-                    }), 200
-                    
-        except subprocess.TimeoutExpired:
-            return jsonify({
-                'status': 'error',
-                'message': 'Request timed out. Please try: https://ssstik.io or https://snapany.com/tiktok'
-            }), 200
-        except FileNotFoundError:
-            return jsonify({
-                'status': 'error',
-                'message': 'Node.js not found. Please install Node.js or use: https://ssstik.io or https://snapany.com/tiktok'
-            }), 200
-        except Exception as e:
-            return jsonify({
-                'status': 'error',
-                'message': f'Error: {str(e)}. Please try: https://ssstik.io or https://snapany.com/tiktok'
-            }), 200
+        if os.path.exists(script_path):
+            try:
+                result = subprocess.run(
+                    ['node', script_path, url],
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    cwd=os.path.dirname(__file__)
+                )
+                
+                if result.returncode == 0:
+                    try:
+                        response_data = json.loads(result.stdout.strip())
+                        if response_data.get('status') == 'success':
+                            return jsonify(response_data)
+                    except json.JSONDecodeError:
+                        pass
+            except:
+                pass
+        
+        # All methods failed
+        return jsonify({
+            'status': 'error',
+            'message': 'Unable to download video. Please try: https://ssstik.io or https://snapany.com/tiktok'
+        }), 200
             
     except Exception as e:
         import traceback
