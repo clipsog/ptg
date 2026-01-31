@@ -1,8 +1,32 @@
 from flask import Flask, render_template, request, jsonify
 import requests
 import json
+import threading
+import time
+import os
 
 app = Flask(__name__)
+
+# Keep-alive mechanism to prevent Render from spinning down
+def keep_alive():
+    """Ping the app every 5 minutes to keep it awake"""
+    while True:
+        try:
+            time.sleep(300)  # Wait 5 minutes
+            # Ping the health check endpoint
+            if os.environ.get('RENDER'):
+                # Only run keep-alive on Render
+                try:
+                    requests.get(f"https://{os.environ.get('RENDER_SERVICE_NAME', 'ptg')}.onrender.com/health", timeout=10)
+                except:
+                    pass
+        except:
+            pass
+
+# Start keep-alive thread if on Render
+if os.environ.get('RENDER'):
+    keep_alive_thread = threading.Thread(target=keep_alive, daemon=True)
+    keep_alive_thread.start()
 
 def parse_response(response):
     """Parse API response and extract status and cooldown info"""
@@ -130,6 +154,11 @@ def make_request(service_id, url, vid_id=None, username=None, post_id=None, twee
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/health')
+def health():
+    """Health check endpoint to keep the app alive"""
+    return jsonify({'status': 'ok', 'message': 'Service is running'}), 200
 
 @app.route('/api/order', methods=['POST'])
 def create_order():
