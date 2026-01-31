@@ -522,7 +522,12 @@
             console.log('Page loaded, setting up TikTok downloader'); // Debug
             
             const tiktokInput = document.getElementById('tiktok-url');
-            const downloadBtn = document.querySelector('button[onclick="downloadTikTok()"]');
+            const downloadBtn = document.getElementById('tiktok-download-btn');
+            
+            if (!downloadBtn) {
+                console.error('Download button not found!');
+                return;
+            }
             
             // Add Enter key support
             if (tiktokInput) {
@@ -534,19 +539,21 @@
                 });
             }
             
-            // Ensure button works on mobile (add touch event)
-            if (downloadBtn) {
-                downloadBtn.addEventListener('touchstart', function(e) {
-                    e.preventDefault();
-                    downloadTikTok();
-                });
-                
-                // Also keep click for desktop
-                downloadBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    downloadTikTok();
-                });
-            }
+            // Ensure button works on mobile and desktop
+            downloadBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Button clicked!'); // Debug
+                downloadTikTok();
+            });
+            
+            // Also add touch event for mobile
+            downloadBtn.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Button touched!'); // Debug
+                downloadTikTok();
+            });
         });
         
         // Cooldown management

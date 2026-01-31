@@ -222,84 +222,79 @@ def index():
 @app.route('/api/tiktok-download', methods=['POST'])
 def tiktok_download():
     """Download TikTok video without watermark"""
-    data = request.json
-    url = data.get('url')
-    
-    if not url:
-        return jsonify({'status': 'error', 'message': 'Missing URL'}), 400
-    
     try:
-        # Extract video ID from URL
-        if 'vt.tiktok.com' in url or 'vm.tiktok.com' in url:
-            # Short URL - need to resolve first
-            import re
-            response = requests.get(url, allow_redirects=True, timeout=10)
-            url = response.url
+        data = request.json
+        if not data:
+            return jsonify({'status': 'error', 'message': 'Invalid request data'}), 400
+            
+        url = data.get('url')
         
-        # Extract video ID
-        video_id = None
-        if '/video/' in url:
-            video_id = url.split('/video/')[-1].split('?')[0]
-        elif '@' in url:
-            # Handle @username/video/123 format
-            parts = url.split('/')
-            for i, part in enumerate(parts):
-                if part == 'video' and i + 1 < len(parts):
-                    video_id = parts[i + 1].split('?')[0]
-                    break
+        if not url:
+            return jsonify({'status': 'error', 'message': 'Missing URL'}), 400
         
-        if not video_id:
-            return jsonify({'status': 'error', 'message': 'Could not extract video ID from URL'}), 400
-        
-        # Use a TikTok API to get video info (no watermark)
-        # Using a public API endpoint
-        api_url = f"https://api16-normal-c-useast1a.tiktokv.com/aweme/v1/feed/?aweme_id={video_id}"
-        
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'application/json',
-        }
-        
-        response = requests.get(api_url, headers=headers, timeout=15)
-        
-        if response.status_code == 200:
-            try:
-                data = response.json()
-                if 'aweme_list' in data and len(data['aweme_list']) > 0:
-                    video_data = data['aweme_list'][0]
-                    # Get video URL without watermark
-                    video_url = None
-                    if 'video' in video_data:
-                        if 'play_addr' in video_data['video']:
-                            url_list = video_data['video']['play_addr'].get('url_list', [])
-                            if url_list:
-                                video_url = url_list[0]
-                    
-                    if video_url:
-                        return jsonify({
-                            'status': 'success',
-                            'video_url': video_url,
-                            'title': video_data.get('desc', 'TikTok Video'),
-                            'author': video_data.get('author', {}).get('nickname', 'Unknown')
-                        })
-                    else:
-                        return jsonify({'status': 'error', 'message': 'Could not extract video URL'}), 400
-                else:
-                    return jsonify({'status': 'error', 'message': 'Video not found'}), 404
-            except Exception as e:
-                # Fallback: use alternative method
-                return jsonify({'status': 'error', 'message': f'API parsing error: {str(e)}'}), 400
-        else:
-            # Alternative: use web scraping method
+        # Use a simpler, more reliable method - use an external API service
+        # Since TikTok's direct API is unreliable, we'll use a proxy service
+        try:
+            # Try using tiklydown API (free service)
+            api_endpoint = "https://tiklydown.com/api/download"
+            
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Content-Type': 'application/json',
+            }
+            
+            payload = {'url': url}
+            
+            response = requests.post(api_endpoint, json=payload, headers=headers, timeout=20)
+            
+            if response.status_code == 200:
+                try:
+                    api_data = response.json()
+                    if api_data.get('status') == 'success' or api_data.get('video'):
+                        video_url = api_data.get('video') or api_data.get('videoUrl') or api_data.get('url')
+                        if video_url:
+                            return jsonify({
+                                'status': 'success',
+                                'video_url': video_url,
+                                'title': api_data.get('title', 'TikTok Video'),
+                                'author': api_data.get('author', {}).get('name', 'Unknown') if isinstance(api_data.get('author'), dict) else api_data.get('author', 'Unknown')
+                            })
+                except:
+                    pass
+            
+            # Fallback: Try alternative API
+            alt_endpoint = "https://api.tiklydown.eu.org/api/download"
+            response = requests.post(alt_endpoint, json=payload, headers=headers, timeout=20)
+            
+            if response.status_code == 200:
+                try:
+                    api_data = response.json()
+                    if api_data.get('status') == 'success' or api_data.get('video'):
+                        video_url = api_data.get('video') or api_data.get('videoUrl') or api_data.get('url')
+                        if video_url:
+                            return jsonify({
+                                'status': 'success',
+                                'video_url': video_url,
+                                'title': api_data.get('title', 'TikTok Video'),
+                                'author': api_data.get('author', 'Unknown')
+                            })
+                except:
+                    pass
+            
+            # If all APIs fail, provide helpful message
             return jsonify({
                 'status': 'error',
-                'message': 'Direct API failed. Please use: https://snapany.com/tiktok or https://ssstik.io'
+                'message': 'Unable to download video. Please try: https://ssstik.io or https://snapany.com/tiktok'
             }), 400
             
-    except requests.exceptions.RequestException as e:
-        return jsonify({'status': 'error', 'message': f'Network error: {str(e)}'}), 500
+        except requests.exceptions.RequestException as e:
+            return jsonify({
+                'status': 'error',
+                'message': f'Network error. Please try: https://ssstik.io or https://snapany.com/tiktok'
+            }), 500
+            
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        return jsonify({'status': 'error', 'message': f'Error: {str(e)}'}), 500
 
 @app.route('/health')
 def health():
