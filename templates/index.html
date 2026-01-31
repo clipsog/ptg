@@ -290,7 +290,7 @@
                 <p style="margin-bottom: 15px; opacity: 0.9;">Download TikTok videos without watermark</p>
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                     <input type="text" id="tiktok-url" placeholder="Paste TikTok URL here..." style="flex: 1; min-width: 200px; padding: 12px; border: none; border-radius: 8px; font-size: 14px;">
-                    <button onclick="downloadTikTok()" style="padding: 12px 24px; background: white; color: #ff0050; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">Download</button>
+                    <button id="tiktok-download-btn" type="button" style="padding: 12px 24px; background: white; color: #ff0050; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; -webkit-tap-highlight-color: transparent; touch-action: manipulation;">Download</button>
                 </div>
                 <div id="tiktok-result" style="margin-top: 15px; display: none; padding: 15px; background: rgba(255,255,255,0.2); border-radius: 8px;"></div>
             </div>
@@ -443,25 +443,34 @@
         
         // TikTok Downloader
         async function downloadTikTok() {
-            const url = document.getElementById('tiktok-url').value.trim();
+            console.log('downloadTikTok called'); // Debug
+            const urlInput = document.getElementById('tiktok-url');
             const resultDiv = document.getElementById('tiktok-result');
             
-            if (!url) {
-                resultDiv.style.display = 'block';
-                resultDiv.innerHTML = '<p style="color: #ffeb3b;">⚠️ Please enter a TikTok URL</p>';
+            if (!urlInput || !resultDiv) {
+                alert('Error: Page elements not found. Please refresh the page.');
                 return;
             }
             
-            if (!url.includes('tiktok.com')) {
+            const url = urlInput.value.trim();
+            
+            if (!url) {
                 resultDiv.style.display = 'block';
-                resultDiv.innerHTML = '<p style="color: #ffeb3b;">⚠️ Please enter a valid TikTok URL</p>';
+                resultDiv.innerHTML = '<p style="color: #ffeb3b; margin: 0;">⚠️ Please enter a TikTok URL</p>';
+                return;
+            }
+            
+            if (!url.includes('tiktok.com') && !url.includes('vm.tiktok.com') && !url.includes('vt.tiktok.com')) {
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = '<p style="color: #ffeb3b; margin: 0;">⚠️ Please enter a valid TikTok URL</p>';
                 return;
             }
             
             resultDiv.style.display = 'block';
-            resultDiv.innerHTML = '<p>⏳ Processing...</p>';
+            resultDiv.innerHTML = '<p style="margin: 0;">⏳ Processing... Please wait</p>';
             
             try {
+                console.log('Sending request for URL:', url); // Debug
                 const response = await fetch('/api/tiktok-download', {
                     method: 'POST',
                     headers: {
@@ -470,40 +479,72 @@
                     body: JSON.stringify({ url: url })
                 });
                 
-                const data = await response.json();
+                console.log('Response status:', response.status); // Debug
                 
-                if (data.status === 'success') {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Response data:', data); // Debug
+                
+                if (data.status === 'success' && data.video_url) {
                     resultDiv.innerHTML = `
                         <div style="color: white;">
-                            <p style="font-weight: 600; margin-bottom: 10px;">✓ Video Ready!</p>
-                            <p style="margin-bottom: 5px;"><strong>Title:</strong> ${data.title || 'N/A'}</p>
-                            <p style="margin-bottom: 10px;"><strong>Author:</strong> ${data.author || 'N/A'}</p>
-                            <a href="${data.video_url}" download style="display: inline-block; padding: 10px 20px; background: white; color: #ff0050; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 10px;">⬇️ Download Video</a>
-                            <br>
-                            <a href="${data.video_url}" target="_blank" style="display: inline-block; padding: 10px 20px; background: rgba(255,255,255,0.3); color: white; border-radius: 8px; text-decoration: none; margin-top: 10px; margin-left: 10px;">🔗 Open in New Tab</a>
+                            <p style="font-weight: 600; margin-bottom: 10px; margin-top: 0;">✓ Video Ready!</p>
+                            ${data.title ? `<p style="margin-bottom: 5px; font-size: 14px;"><strong>Title:</strong> ${data.title}</p>` : ''}
+                            ${data.author ? `<p style="margin-bottom: 10px; font-size: 14px;"><strong>Author:</strong> ${data.author}</p>` : ''}
+                            <a href="${data.video_url}" download="tiktok-video.mp4" style="display: inline-block; padding: 12px 24px; background: white; color: #ff0050; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 10px; width: 100%; text-align: center; box-sizing: border-box;">⬇️ Download Video</a>
+                            <a href="${data.video_url}" target="_blank" style="display: inline-block; padding: 12px 24px; background: rgba(255,255,255,0.3); color: white; border-radius: 8px; text-decoration: none; margin-top: 10px; width: 100%; text-align: center; box-sizing: border-box;">🔗 Open in New Tab</a>
                         </div>
                     `;
                 } else {
                     resultDiv.innerHTML = `
                         <div style="color: #ffeb3b;">
-                            <p style="font-weight: 600;">✗ ${data.message}</p>
-                            <p style="margin-top: 10px; font-size: 12px;">Try using: <a href="https://ssstik.io" target="_blank" style="color: white;">ssstik.io</a> or <a href="https://snapany.com/tiktok" target="_blank" style="color: white;">snapany.com</a></p>
+                            <p style="font-weight: 600; margin: 0 0 10px 0;">✗ ${data.message || 'Failed to download video'}</p>
+                            <p style="margin-top: 10px; font-size: 12px; margin-bottom: 0;">Try using: <a href="https://ssstik.io" target="_blank" style="color: white; text-decoration: underline;">ssstik.io</a> or <a href="https://snapany.com/tiktok" target="_blank" style="color: white; text-decoration: underline;">snapany.com</a></p>
                         </div>
                     `;
                 }
             } catch (error) {
-                resultDiv.innerHTML = `<p style="color: #ffeb3b;">✗ Error: ${error.message}</p>`;
+                console.error('Download error:', error); // Debug
+                resultDiv.innerHTML = `
+                    <div style="color: #ffeb3b;">
+                        <p style="font-weight: 600; margin: 0 0 10px 0;">✗ Error: ${error.message}</p>
+                        <p style="margin-top: 10px; font-size: 12px; margin-bottom: 0;">Try using: <a href="https://ssstik.io" target="_blank" style="color: white; text-decoration: underline;">ssstik.io</a> or <a href="https://snapany.com/tiktok" target="_blank" style="color: white; text-decoration: underline;">snapany.com</a></p>
+                    </div>
+                `;
             }
         }
         
-        // Allow Enter key to trigger download
+        // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, setting up TikTok downloader'); // Debug
+            
             const tiktokInput = document.getElementById('tiktok-url');
+            const downloadBtn = document.querySelector('button[onclick="downloadTikTok()"]');
+            
+            // Add Enter key support
             if (tiktokInput) {
                 tiktokInput.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter') {
+                        e.preventDefault();
                         downloadTikTok();
                     }
+                });
+            }
+            
+            // Ensure button works on mobile (add touch event)
+            if (downloadBtn) {
+                downloadBtn.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    downloadTikTok();
+                });
+                
+                // Also keep click for desktop
+                downloadBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    downloadTikTok();
                 });
             }
         });
