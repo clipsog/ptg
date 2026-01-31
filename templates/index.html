@@ -447,20 +447,28 @@
                     result.innerHTML = `
                         <h3>✓ Success!</h3>
                         <p>${data.message || 'Order placed successfully!'}</p>
-                        ${data.cooldown ? `<p><strong>Cooldown:</strong> ${data.cooldown}</p>` : ''}
+                        ${data.cooldown ? `<p><strong>⏱ Cooldown:</strong> ${data.cooldown}</p>` : ''}
                     `;
-                } else if (data.status === 'error') {
+                } else if (data.status === 'cooldown') {
+                    result.className = 'result info';
+                    result.innerHTML = `
+                        <h3>⏱ Cooldown Active</h3>
+                        <p>${data.message || 'Please wait before placing another order'}</p>
+                        ${data.cooldown ? `<p><strong>Wait time:</strong> ${data.cooldown}</p>` : ''}
+                    `;
+                } else if (data.status === 'error' || data.status === 'failed') {
                     result.className = 'result error';
                     result.innerHTML = `
                         <h3>✗ Error</h3>
                         <p>${data.message}</p>
+                        ${data.cooldown ? `<p><strong>⏱ Cooldown:</strong> ${data.cooldown}</p>` : ''}
                     `;
                 } else {
                     result.className = 'result info';
                     result.innerHTML = `
                         <h3>Response</h3>
                         <p>${data.message || 'Request completed'}</p>
-                        ${data.cooldown ? `<p><strong>Cooldown:</strong> ${data.cooldown}</p>` : ''}
+                        ${data.cooldown ? `<p><strong>⏱ Cooldown:</strong> ${data.cooldown}</p>` : ''}
                     `;
                 }
                 

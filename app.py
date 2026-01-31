@@ -4,6 +4,7 @@ import json
 import threading
 import time
 import os
+import re
 
 app = Flask(__name__)
 
@@ -38,45 +39,96 @@ def parse_response(response):
     }
     
     try:
-        response_text = response.text.strip()
+        # Try to get response text, handling encoding issues
+        try:
+            response_text = response.text.strip()
+        except:
+            # If text decoding fails, try different encodings
+            try:
+                response_text = response.content.decode('utf-8', errors='ignore').strip()
+            except:
+                response_text = response.content.decode('latin-1', errors='ignore').strip()
+        
         result['raw_response'] = response_text
         
-        # Try to parse as JSON
+        # Try to parse as JSON first
         try:
             data = response.json()
             if isinstance(data, dict):
+                # Look for all possible keys
                 for key, value in data.items():
                     key_lower = str(key).lower()
                     value_str = str(value).lower()
                     
-                    if any(word in key_lower for word in ['success', 'status', 'order']):
+                    # Check for cooldown information
+                    if 'cooldown' in key_lower:
+                        result['cooldown'] = str(value)
+                    elif 'wait' in key_lower or 'time' in key_lower or 'delay' in key_lower:
+                        if 'cooldown' in value_str or 'minute' in value_str or 'hour' in value_str or 'second' in value_str:
+                            result['cooldown'] = str(value)
+                    
+                    # Check for status
+                    if any(word in key_lower for word in ['success', 'status', 'order', 'result']):
                         if 'success' in value_str or 'ok' in value_str or 'created' in value_str or 'accepted' in value_str:
                             result['status'] = 'success'
                         elif 'error' in value_str or 'fail' in value_str or 'denied' in value_str:
                             result['status'] = 'failed'
+                        elif 'cooldown' in value_str or 'wait' in value_str:
+                            result['status'] = 'cooldown'
+                            result['cooldown'] = str(value)
                         result['message'] = str(value)
-                    elif 'cooldown' in key_lower or 'wait' in key_lower or 'time' in key_lower:
-                        result['cooldown'] = str(value)
-                    elif 'message' in key_lower:
+                    elif 'message' in key_lower or 'msg' in key_lower:
                         result['message'] = str(value)
-        except:
-            # Not JSON, check text
+                        # Check if message contains cooldown info
+                        if 'cooldown' in value_str or 'wait' in value_str:
+                            result['cooldown'] = str(value)
+        except (json.JSONDecodeError, ValueError):
+            # Not JSON, parse as text
             response_text_lower = response_text.lower()
-            if 'success' in response_text_lower or ('order' in response_text_lower and 'created' in response_text_lower):
+            
+            # Look for cooldown patterns in text
+            import re
+            cooldown_patterns = [
+                r'cooldown[:\s]+([0-9]+\s*(?:minute|hour|second|day|week)s?)',
+                r'wait[:\s]+([0-9]+\s*(?:minute|hour|second|day|week)s?)',
+                r'(\d+\s*(?:minute|hour|second|day|week)s?\s*(?:cooldown|wait))',
+            ]
+            
+            for pattern in cooldown_patterns:
+                match = re.search(pattern, response_text_lower)
+                if match:
+                    result['cooldown'] = match.group(1).strip()
+                    break
+            
+            # Check for status in text
+            if 'cooldown' in response_text_lower or 'wait' in response_text_lower:
+                if result['status'] == 'unknown':
+                    result['status'] = 'cooldown'
+                if not result['cooldown']:
+                    # Extract any time mentioned
+                    time_match = re.search(r'(\d+\s*(?:minute|hour|second|day|week)s?)', response_text_lower)
+                    if time_match:
+                        result['cooldown'] = time_match.group(1).strip()
+            elif 'success' in response_text_lower or ('order' in response_text_lower and 'created' in response_text_lower):
                 result['status'] = 'success'
             elif 'error' in response_text_lower or 'failed' in response_text_lower:
                 result['status'] = 'failed'
-            elif 'cooldown' in response_text_lower:
-                result['status'] = 'cooldown'
-                result['cooldown'] = response_text_lower
         
-        # Check HTTP status
-        if response.status_code == 200 and result['status'] == 'unknown':
-            result['status'] = 'success'
-            result['message'] = 'Request completed successfully'
+        # Check HTTP status code
+        if response.status_code == 200:
+            if result['status'] == 'unknown':
+                # If we got 200 but couldn't parse, assume success
+                result['status'] = 'success'
+                if not result['message']:
+                    result['message'] = 'Request completed successfully'
         elif response.status_code != 200:
             result['status'] = 'failed'
-            result['message'] = f'HTTP {response.status_code}'
+            if not result['message']:
+                result['message'] = f'HTTP {response.status_code}'
+        
+        # If we found cooldown but status is unknown, set it appropriately
+        if result['cooldown'] and result['status'] == 'unknown':
+            result['status'] = 'cooldown'
             
     except Exception as e:
         result['status'] = 'error'
