@@ -488,13 +488,16 @@
                 console.log('Response data:', data); // Debug
                 
                 if (data.status === 'success' && data.video_url) {
+                    // Use proxy URL for mobile downloads
+                    const proxyUrl = `/api/tiktok-proxy?url=${encodeURIComponent(data.video_url)}`;
+                    
                     resultDiv.innerHTML = `
                         <div style="color: white;">
                             <p style="font-weight: 600; margin-bottom: 10px; margin-top: 0;">✓ Video Ready!</p>
                             ${data.title ? `<p style="margin-bottom: 5px; font-size: 14px;"><strong>Title:</strong> ${data.title}</p>` : ''}
                             ${data.author ? `<p style="margin-bottom: 10px; font-size: 14px;"><strong>Author:</strong> ${data.author}</p>` : ''}
-                            <a href="${data.video_url}" download="tiktok-video.mp4" style="display: inline-block; padding: 12px 24px; background: white; color: #ff0050; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 10px; width: 100%; text-align: center; box-sizing: border-box;">⬇️ Download Video</a>
-                            <a href="${data.video_url}" target="_blank" style="display: inline-block; padding: 12px 24px; background: rgba(255,255,255,0.3); color: white; border-radius: 8px; text-decoration: none; margin-top: 10px; width: 100%; text-align: center; box-sizing: border-box;">🔗 Open in New Tab</a>
+                            <button onclick="downloadVideo('${proxyUrl}', '${data.title || 'tiktok-video'}.mp4')" style="display: block; padding: 15px 24px; background: white; color: #ff0050; border: none; border-radius: 8px; font-weight: 600; margin-top: 10px; width: 100%; text-align: center; box-sizing: border-box; font-size: 16px; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation;">⬇️ Download to Photos</button>
+                            <a href="${data.video_url}" target="_blank" style="display: block; padding: 12px 24px; background: rgba(255,255,255,0.3); color: white; border-radius: 8px; text-decoration: none; margin-top: 10px; width: 100%; text-align: center; box-sizing: border-box;">🔗 Preview Video</a>
                         </div>
                     `;
                 } else {
@@ -513,6 +516,32 @@
                         <p style="margin-top: 10px; font-size: 12px; margin-bottom: 0;">Try using: <a href="https://ssstik.io" target="_blank" style="color: white; text-decoration: underline;">ssstik.io</a> or <a href="https://snapany.com/tiktok" target="_blank" style="color: white; text-decoration: underline;">snapany.com</a></p>
                     </div>
                 `;
+            }
+        }
+        
+        // Download video function for mobile
+        function downloadVideo(url, filename) {
+            // Create a temporary link and trigger download
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            
+            // Trigger click
+            link.click();
+            
+            // Clean up after a delay
+            setTimeout(() => {
+                document.body.removeChild(link);
+            }, 100);
+            
+            // For mobile, also try opening in new window as fallback
+            if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                // On mobile, the download might not work, so show a message
+                setTimeout(() => {
+                    alert('If download didn\'t start, tap and hold the "Preview Video" link and select "Download"');
+                }, 500);
             }
         }
         
