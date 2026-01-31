@@ -338,6 +338,46 @@ def tiktok_download():
             'message': f'Server error. Please try: https://ssstik.io or https://snapany.com/tiktok'
         }), 200
 
+@app.route('/api/tiktok-proxy', methods=['GET'])
+def tiktok_proxy():
+    """Proxy TikTok video download with proper headers for mobile"""
+    from flask import Response
+    
+    video_url = request.args.get('url')
+    
+    if not video_url:
+        return jsonify({'error': 'Missing URL parameter'}), 400
+    
+    try:
+        # Fetch the video
+        response = requests.get(
+            video_url,
+            headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Referer': 'https://www.tiktok.com/',
+            },
+            stream=True,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            # Return video with proper download headers for mobile
+            return Response(
+                response.iter_content(chunk_size=8192),
+                mimetype='video/mp4',
+                headers={
+                    'Content-Disposition': f'attachment; filename="tiktok_video_{int(time.time())}.mp4"',
+                    'Content-Type': 'video/mp4',
+                    'Cache-Control': 'no-cache',
+                    'Accept-Ranges': 'bytes',
+                }
+            )
+        else:
+            return jsonify({'error': 'Failed to fetch video'}), response.status_code
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/health')
 def health():
     """Health check endpoint to keep the app alive"""
