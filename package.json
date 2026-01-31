@@ -1,0 +1,9 @@
+{
+  "name": "zefame",
+  "version": "1.0.0",
+  "description": "Zefame social media booster with TikTok downloader",
+  "private": true,
+  "dependencies": {
+    "@tobyg74/tiktok-api-dl": "^1.3.7"
+  }
+}
