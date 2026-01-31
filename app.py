@@ -219,6 +219,88 @@ def make_request(service_id, url, vid_id=None, username=None, post_id=None, twee
 def index():
     return render_template('index.html')
 
+@app.route('/api/tiktok-download', methods=['POST'])
+def tiktok_download():
+    """Download TikTok video without watermark"""
+    data = request.json
+    url = data.get('url')
+    
+    if not url:
+        return jsonify({'status': 'error', 'message': 'Missing URL'}), 400
+    
+    try:
+        # Extract video ID from URL
+        if 'vt.tiktok.com' in url or 'vm.tiktok.com' in url:
+            # Short URL - need to resolve first
+            import re
+            response = requests.get(url, allow_redirects=True, timeout=10)
+            url = response.url
+        
+        # Extract video ID
+        video_id = None
+        if '/video/' in url:
+            video_id = url.split('/video/')[-1].split('?')[0]
+        elif '@' in url:
+            # Handle @username/video/123 format
+            parts = url.split('/')
+            for i, part in enumerate(parts):
+                if part == 'video' and i + 1 < len(parts):
+                    video_id = parts[i + 1].split('?')[0]
+                    break
+        
+        if not video_id:
+            return jsonify({'status': 'error', 'message': 'Could not extract video ID from URL'}), 400
+        
+        # Use a TikTok API to get video info (no watermark)
+        # Using a public API endpoint
+        api_url = f"https://api16-normal-c-useast1a.tiktokv.com/aweme/v1/feed/?aweme_id={video_id}"
+        
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'application/json',
+        }
+        
+        response = requests.get(api_url, headers=headers, timeout=15)
+        
+        if response.status_code == 200:
+            try:
+                data = response.json()
+                if 'aweme_list' in data and len(data['aweme_list']) > 0:
+                    video_data = data['aweme_list'][0]
+                    # Get video URL without watermark
+                    video_url = None
+                    if 'video' in video_data:
+                        if 'play_addr' in video_data['video']:
+                            url_list = video_data['video']['play_addr'].get('url_list', [])
+                            if url_list:
+                                video_url = url_list[0]
+                    
+                    if video_url:
+                        return jsonify({
+                            'status': 'success',
+                            'video_url': video_url,
+                            'title': video_data.get('desc', 'TikTok Video'),
+                            'author': video_data.get('author', {}).get('nickname', 'Unknown')
+                        })
+                    else:
+                        return jsonify({'status': 'error', 'message': 'Could not extract video URL'}), 400
+                else:
+                    return jsonify({'status': 'error', 'message': 'Video not found'}), 404
+            except Exception as e:
+                # Fallback: use alternative method
+                return jsonify({'status': 'error', 'message': f'API parsing error: {str(e)}'}), 400
+        else:
+            # Alternative: use web scraping method
+            return jsonify({
+                'status': 'error',
+                'message': 'Direct API failed. Please use: https://snapany.com/tiktok or https://ssstik.io'
+            }), 400
+            
+    except requests.exceptions.RequestException as e:
+        return jsonify({'status': 'error', 'message': f'Network error: {str(e)}'}), 500
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 @app.route('/health')
 def health():
     """Health check endpoint to keep the app alive"""

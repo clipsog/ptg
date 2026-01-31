@@ -285,6 +285,16 @@
         </div>
         
         <div class="content">
+            <div class="service-group" style="background: linear-gradient(135deg, #ff0050 0%, #00f2ea 100%); padding: 20px; border-radius: 15px; margin-bottom: 30px; color: white;">
+                <h2 style="color: white; margin-bottom: 15px;">⬇️ TikTok Video Downloader</h2>
+                <p style="margin-bottom: 15px; opacity: 0.9;">Download TikTok videos without watermark</p>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="text" id="tiktok-url" placeholder="Paste TikTok URL here..." style="flex: 1; min-width: 200px; padding: 12px; border: none; border-radius: 8px; font-size: 14px;">
+                    <button onclick="downloadTikTok()" style="padding: 12px 24px; background: white; color: #ff0050; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">Download</button>
+                </div>
+                <div id="tiktok-result" style="margin-top: 15px; display: none; padding: 15px; background: rgba(255,255,255,0.2); border-radius: 8px;"></div>
+            </div>
+            
             <div class="service-group">
                 <h2>📱 TikTok</h2>
                 <button class="service-btn" id="btn-229" onclick="openModal('229', 'TikTok Views', 'Enter your TikTok video URL')">
