@@ -275,25 +275,32 @@ def tiktok_download():
                             # Extract photo URLs from response
                             response_text = json.dumps(api_data)
                             import re
-                            # Find all JPEG/JPG URLs
-                            jpeg_pattern = r'https?://[^\s"\'<>]+\.(?:jpeg|jpg)'
+                            # Find all JPEG/JPG URLs (exclude .json files)
+                            jpeg_pattern = r'https?://[^\s"\'<>]+\.(?:jpeg|jpg)(?:\?[^\s"\'<>]*)?'
                             found_urls = re.findall(jpeg_pattern, response_text, re.IGNORECASE)
                             
-                            # Clean URLs (remove escape characters)
+                            # Clean URLs (remove escape characters) and filter out .json files
                             for photo_url in found_urls:
                                 clean_url = photo_url.replace('\\', '').replace('~', '')
-                                if clean_url not in photo_urls and 'http' in clean_url:
-                                    photo_urls.append(clean_url)
+                                # Only include if it's actually a jpg/jpeg, not json
+                                if (clean_url.lower().endswith('.jpg') or clean_url.lower().endswith('.jpeg') or 
+                                    '.jpg?' in clean_url.lower() or '.jpeg?' in clean_url.lower()) and \
+                                   not clean_url.lower().endswith('.json') and '.json' not in clean_url.lower():
+                                    if clean_url not in photo_urls and 'http' in clean_url:
+                                        photo_urls.append(clean_url)
                             
                             # Also check in data structure
                             if 'data' in api_data:
                                 data_obj = api_data['data']
                                 if 'images' in data_obj:
                                     if isinstance(data_obj['images'], list):
-                                        photo_urls.extend([img for img in data_obj['images'] if isinstance(img, str)])
+                                        # Filter to only jpg/jpeg, exclude json
+                                        for img in data_obj['images']:
+                                            if isinstance(img, str) and ('.jpg' in img.lower() or '.jpeg' in img.lower()) and '.json' not in img.lower():
+                                                photo_urls.append(img)
                                     elif isinstance(data_obj['images'], dict):
                                         for key, val in data_obj['images'].items():
-                                            if isinstance(val, str) and ('.jpeg' in val.lower() or '.jpg' in val.lower()):
+                                            if isinstance(val, str) and ('.jpeg' in val.lower() or '.jpg' in val.lower()) and '.json' not in val.lower():
                                                 photo_urls.append(val)
                             
                             # Remove duplicates
@@ -377,10 +384,19 @@ def tiktok_download():
                 if response.status_code == 200:
                     response_text = response.text
                     import re
-                    # Extract JPEG URLs
-                    jpeg_pattern = r'https?://[^\s"\'<>]+\.(?:jpeg|jpg)'
-                    photo_urls = re.findall(jpeg_pattern, response_text, re.IGNORECASE)
-                    photo_urls = [url.replace('\\', '').replace('~', '') for url in photo_urls if 'http' in url]
+                    # Extract JPEG URLs (exclude .json files)
+                    jpeg_pattern = r'https?://[^\s"\'<>]+\.(?:jpeg|jpg)(?:\?[^\s"\'<>]*)?'
+                    found_urls = re.findall(jpeg_pattern, response_text, re.IGNORECASE)
+                    # Filter out .json files and clean URLs
+                    photo_urls = []
+                    for url in found_urls:
+                        clean_url = url.replace('\\', '').replace('~', '')
+                        # Only include if it's actually a jpg/jpeg, not json
+                        if (clean_url.lower().endswith('.jpg') or clean_url.lower().endswith('.jpeg') or 
+                            '.jpg?' in clean_url.lower() or '.jpeg?' in clean_url.lower()) and \
+                           not clean_url.lower().endswith('.json') and '.json' not in clean_url.lower():
+                            if 'http' in clean_url and clean_url not in photo_urls:
+                                photo_urls.append(clean_url)
                     photo_urls = list(dict.fromkeys(photo_urls))  # Remove duplicates
                     
                     if photo_urls:
