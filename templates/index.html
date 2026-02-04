@@ -487,19 +487,46 @@
                 // Don't throw error on non-200, let the data.status handle it
                 console.log('Response data:', data); // Debug
                 
-                if (data.status === 'success' && data.video_url) {
-                    // Use proxy URL for mobile downloads
-                    const proxyUrl = `/api/tiktok-proxy?url=${encodeURIComponent(data.video_url)}`;
-                    
-                    resultDiv.innerHTML = `
-                        <div style="color: white;">
-                            <p style="font-weight: 600; margin-bottom: 10px; margin-top: 0;">✓ Video Ready!</p>
-                            ${data.title ? `<p style="margin-bottom: 5px; font-size: 14px;"><strong>Title:</strong> ${data.title}</p>` : ''}
-                            ${data.author ? `<p style="margin-bottom: 10px; font-size: 14px;"><strong>Author:</strong> ${data.author}</p>` : ''}
-                            <button onclick="downloadVideo('${proxyUrl}', '${data.title || 'tiktok-video'}.mp4')" style="display: block; padding: 15px 24px; background: white; color: #ff0050; border: none; border-radius: 8px; font-weight: 600; margin-top: 10px; width: 100%; text-align: center; box-sizing: border-box; font-size: 16px; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation;">⬇️ Download to Photos</button>
-                            <a href="${data.video_url}" target="_blank" style="display: block; padding: 12px 24px; background: rgba(255,255,255,0.3); color: white; border-radius: 8px; text-decoration: none; margin-top: 10px; width: 100%; text-align: center; box-sizing: border-box;">🔗 Preview Video</a>
-                        </div>
-                    `;
+                if (data.status === 'success') {
+                    // Handle videos
+                    if (data.type === 'video' && data.video_url) {
+                        const proxyUrl = `/api/tiktok-proxy?url=${encodeURIComponent(data.video_url)}&type=video`;
+                        
+                        resultDiv.innerHTML = `
+                            <div style="color: white;">
+                                <p style="font-weight: 600; margin-bottom: 10px; margin-top: 0;">✓ Video Ready!</p>
+                                ${data.title ? `<p style="margin-bottom: 5px; font-size: 14px;"><strong>Title:</strong> ${data.title}</p>` : ''}
+                                ${data.author ? `<p style="margin-bottom: 10px; font-size: 14px;"><strong>Author:</strong> ${data.author}</p>` : ''}
+                                <button onclick="downloadVideo('${proxyUrl}', '${(data.title || 'tiktok-video').replace(/[^a-z0-9]/gi, '_')}.mp4')" style="display: block; padding: 15px 24px; background: white; color: #ff0050; border: none; border-radius: 8px; font-weight: 600; margin-top: 10px; width: 100%; text-align: center; box-sizing: border-box; font-size: 16px; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation;">⬇️ Download Video to Photos</button>
+                                <a href="${data.video_url}" target="_blank" style="display: block; padding: 12px 24px; background: rgba(255,255,255,0.3); color: white; border-radius: 8px; text-decoration: none; margin-top: 10px; width: 100%; text-align: center; box-sizing: border-box;">🔗 Preview Video</a>
+                            </div>
+                        `;
+                    }
+                    // Handle photos
+                    else if (data.type === 'photo' && data.photo_urls && data.photo_urls.length > 0) {
+                        const photos = data.photo_urls;
+                        let photosHtml = '';
+                        
+                        photos.forEach((photoUrl, index) => {
+                            const proxyUrl = `/api/tiktok-proxy?url=${encodeURIComponent(photoUrl)}&type=photo`;
+                            const photoNum = photos.length > 1 ? ` (${index + 1}/${photos.length})` : '';
+                            photosHtml += `
+                                <div style="margin-bottom: 15px;">
+                                    <button onclick="downloadPhoto('${proxyUrl}', '${(data.title || 'tiktok-photo').replace(/[^a-z0-9]/gi, '_')}_${index + 1}.jpg')" style="display: block; padding: 15px 24px; background: white; color: #ff0050; border: none; border-radius: 8px; font-weight: 600; width: 100%; text-align: center; box-sizing: border-box; font-size: 16px; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation;">⬇️ Download Photo${photoNum} to Photos</button>
+                                    <a href="${photoUrl}" target="_blank" style="display: block; padding: 8px 16px; background: rgba(255,255,255,0.3); color: white; border-radius: 8px; text-decoration: none; margin-top: 8px; width: 100%; text-align: center; box-sizing: border-box; font-size: 14px;">🔗 Preview Photo${photoNum}</a>
+                                </div>
+                            `;
+                        });
+                        
+                        resultDiv.innerHTML = `
+                            <div style="color: white;">
+                                <p style="font-weight: 600; margin-bottom: 10px; margin-top: 0;">✓ ${photos.length} Photo${photos.length > 1 ? 's' : ''} Ready!</p>
+                                ${data.title ? `<p style="margin-bottom: 5px; font-size: 14px;"><strong>Title:</strong> ${data.title}</p>` : ''}
+                                ${data.author ? `<p style="margin-bottom: 15px; font-size: 14px;"><strong>Author:</strong> ${data.author}</p>` : ''}
+                                ${photosHtml}
+                            </div>
+                        `;
+                    }
                 } else {
                     resultDiv.innerHTML = `
                         <div style="color: #ffeb3b;">
@@ -540,7 +567,33 @@
             if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
                 // On mobile, the download might not work, so show a message
                 setTimeout(() => {
-                    alert('If download didn\'t start, tap and hold the "Preview Video" link and select "Download"');
+                    alert('If download didn\'t start, tap and hold the "Preview" link and select "Download"');
+                }, 500);
+            }
+        }
+        
+        // Download photo function for mobile
+        function downloadPhoto(url, filename) {
+            // Create a temporary link and trigger download
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            
+            // Trigger click
+            link.click();
+            
+            // Clean up after a delay
+            setTimeout(() => {
+                document.body.removeChild(link);
+            }, 100);
+            
+            // For mobile, also try opening in new window as fallback
+            if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                // On mobile, the download might not work, so show a message
+                setTimeout(() => {
+                    alert('If download didn\'t start, tap and hold the "Preview" link and select "Download"');
                 }, 500);
             }
         }

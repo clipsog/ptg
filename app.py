@@ -221,7 +221,7 @@ def index():
 
 @app.route('/api/tiktok-download', methods=['POST'])
 def tiktok_download():
-    """Download TikTok video without watermark using public APIs"""
+    """Download TikTok video or photo without watermark using public APIs"""
     try:
         data = request.json
         if not data:
@@ -232,10 +232,25 @@ def tiktok_download():
         if not url:
             return jsonify({'status': 'error', 'message': 'Missing URL'}), 400
         
-        # Try multiple public APIs (same as the HTML file uses)
+        # Detect if it's a photo or video from URL
+        is_photo = '/photo/' in url or '/image/' in url
+        
+        # Extract video/photo ID from URL
+        try:
+            # Extract ID from URL (format: /video/1234567890 or /photo/1234567890)
+            parts = url.split('/')
+            content_id = None
+            for i, part in enumerate(parts):
+                if part in ['video', 'photo', 'image'] and i + 1 < len(parts):
+                    content_id = parts[i + 1].split('?')[0]  # Remove query params
+                    break
+        except:
+            content_id = None
+        
+        # Try multiple public APIs
         apis = [
             f'https://api.tiklydown.eu.org/api/download?url={requests.utils.quote(url)}',
-            f'https://www.tikwm.com/api/?url={requests.utils.quote(url)}',
+            f'https://www.tikwm.com/api/?url={requests.utils.quote(url)}&count=12&cursor=0&web=1&hd=1',
         ]
         
         for api_url in apis:
@@ -253,7 +268,61 @@ def tiktok_download():
                     try:
                         api_data = response.json()
                         
-                        # Handle different API response formats
+                        # Handle photos - extract JPEG URLs
+                        if is_photo or 'images' in str(api_data).lower() or '.jpeg' in str(api_data).lower() or '.jpg' in str(api_data).lower():
+                            photo_urls = []
+                            
+                            # Extract photo URLs from response
+                            response_text = json.dumps(api_data)
+                            import re
+                            # Find all JPEG/JPG URLs
+                            jpeg_pattern = r'https?://[^\s"\'<>]+\.(?:jpeg|jpg)'
+                            found_urls = re.findall(jpeg_pattern, response_text, re.IGNORECASE)
+                            
+                            # Clean URLs (remove escape characters)
+                            for photo_url in found_urls:
+                                clean_url = photo_url.replace('\\', '').replace('~', '')
+                                if clean_url not in photo_urls and 'http' in clean_url:
+                                    photo_urls.append(clean_url)
+                            
+                            # Also check in data structure
+                            if 'data' in api_data:
+                                data_obj = api_data['data']
+                                if 'images' in data_obj:
+                                    if isinstance(data_obj['images'], list):
+                                        photo_urls.extend([img for img in data_obj['images'] if isinstance(img, str)])
+                                    elif isinstance(data_obj['images'], dict):
+                                        for key, val in data_obj['images'].items():
+                                            if isinstance(val, str) and ('.jpeg' in val.lower() or '.jpg' in val.lower()):
+                                                photo_urls.append(val)
+                            
+                            # Remove duplicates
+                            photo_urls = list(dict.fromkeys(photo_urls))
+                            
+                            if photo_urls:
+                                title = api_data.get('title', 'TikTok Photo') if isinstance(api_data, dict) else 'TikTok Photo'
+                                author = 'Unknown'
+                                
+                                if isinstance(api_data, dict):
+                                    if 'author' in api_data:
+                                        if isinstance(api_data['author'], dict):
+                                            author = api_data['author'].get('nickname', api_data['author'].get('unique_id', 'Unknown'))
+                                        else:
+                                            author = str(api_data['author'])
+                                    elif 'data' in api_data and 'author' in api_data['data']:
+                                        author_obj = api_data['data']['author']
+                                        if isinstance(author_obj, dict):
+                                            author = author_obj.get('nickname', author_obj.get('unique_id', 'Unknown'))
+                                
+                                return jsonify({
+                                    'status': 'success',
+                                    'type': 'photo',
+                                    'photo_urls': photo_urls,
+                                    'title': title,
+                                    'author': author
+                                })
+                        
+                        # Handle videos
                         video_url = None
                         title = 'TikTok Video'
                         author = 'Unknown'
@@ -286,6 +355,7 @@ def tiktok_download():
                         if video_url:
                             return jsonify({
                                 'status': 'success',
+                                'type': 'video',
                                 'video_url': video_url,
                                 'title': title,
                                 'author': author,
@@ -297,36 +367,65 @@ def tiktok_download():
             except (requests.exceptions.RequestException, Exception) as e:
                 continue
         
-        # If all APIs fail, try Node.js as fallback
-        import subprocess
-        import os
-        
-        script_path = os.path.join(os.path.dirname(__file__), 'tiktok_downloader.js')
-        
-        if os.path.exists(script_path):
+        # If it's a photo and we have the ID, try direct photo API
+        if is_photo and content_id:
             try:
-                result = subprocess.run(
-                    ['node', script_path, url],
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                    cwd=os.path.dirname(__file__)
-                )
+                # Use tikwm photo API directly
+                photo_api = f'https://tikwm.com/api/?url={requests.utils.quote(url)}&count=12&cursor=0&web=1&hd=1'
+                response = requests.get(photo_api, headers={'User-Agent': 'Mozilla/5.0'}, timeout=20)
                 
-                if result.returncode == 0:
-                    try:
-                        response_data = json.loads(result.stdout.strip())
-                        if response_data.get('status') == 'success':
-                            return jsonify(response_data)
-                    except json.JSONDecodeError:
-                        pass
+                if response.status_code == 200:
+                    response_text = response.text
+                    import re
+                    # Extract JPEG URLs
+                    jpeg_pattern = r'https?://[^\s"\'<>]+\.(?:jpeg|jpg)'
+                    photo_urls = re.findall(jpeg_pattern, response_text, re.IGNORECASE)
+                    photo_urls = [url.replace('\\', '').replace('~', '') for url in photo_urls if 'http' in url]
+                    photo_urls = list(dict.fromkeys(photo_urls))  # Remove duplicates
+                    
+                    if photo_urls:
+                        return jsonify({
+                            'status': 'success',
+                            'type': 'photo',
+                            'photo_urls': photo_urls,
+                            'title': 'TikTok Photo',
+                            'author': 'Unknown'
+                        })
             except:
                 pass
+        
+        # If all APIs fail, try Node.js as fallback (only for videos)
+        if not is_photo:
+            import subprocess
+            import os
+            
+            script_path = os.path.join(os.path.dirname(__file__), 'tiktok_downloader.js')
+            
+            if os.path.exists(script_path):
+                try:
+                    result = subprocess.run(
+                        ['node', script_path, url],
+                        capture_output=True,
+                        text=True,
+                        timeout=30,
+                        cwd=os.path.dirname(__file__)
+                    )
+                    
+                    if result.returncode == 0:
+                        try:
+                            response_data = json.loads(result.stdout.strip())
+                            if response_data.get('status') == 'success':
+                                response_data['type'] = 'video'
+                                return jsonify(response_data)
+                        except json.JSONDecodeError:
+                            pass
+                except:
+                    pass
         
         # All methods failed
         return jsonify({
             'status': 'error',
-            'message': 'Unable to download video. Please try: https://ssstik.io or https://snapany.com/tiktok'
+            'message': 'Unable to download. Please try: https://ssstik.io or https://snapany.com/tiktok'
         }), 200
             
     except Exception as e:
@@ -340,18 +439,19 @@ def tiktok_download():
 
 @app.route('/api/tiktok-proxy', methods=['GET'])
 def tiktok_proxy():
-    """Proxy TikTok video download with proper headers for mobile"""
+    """Proxy TikTok video or photo download with proper headers for mobile"""
     from flask import Response
     
-    video_url = request.args.get('url')
+    media_url = request.args.get('url')
+    media_type = request.args.get('type', 'video')  # 'video' or 'photo'
     
-    if not video_url:
+    if not media_url:
         return jsonify({'error': 'Missing URL parameter'}), 400
     
     try:
-        # Fetch the video
+        # Fetch the media
         response = requests.get(
-            video_url,
+            media_url,
             headers={
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                 'Referer': 'https://www.tiktok.com/',
@@ -361,19 +461,32 @@ def tiktok_proxy():
         )
         
         if response.status_code == 200:
-            # Return video with proper download headers for mobile
-            return Response(
-                response.iter_content(chunk_size=8192),
-                mimetype='video/mp4',
-                headers={
-                    'Content-Disposition': f'attachment; filename="tiktok_video_{int(time.time())}.mp4"',
-                    'Content-Type': 'video/mp4',
-                    'Cache-Control': 'no-cache',
-                    'Accept-Ranges': 'bytes',
-                }
-            )
+            if media_type == 'photo':
+                # Return photo with proper download headers for mobile
+                return Response(
+                    response.iter_content(chunk_size=8192),
+                    mimetype='image/jpeg',
+                    headers={
+                        'Content-Disposition': f'attachment; filename="tiktok_photo_{int(time.time())}.jpg"',
+                        'Content-Type': 'image/jpeg',
+                        'Cache-Control': 'no-cache',
+                        'Accept-Ranges': 'bytes',
+                    }
+                )
+            else:
+                # Return video with proper download headers for mobile
+                return Response(
+                    response.iter_content(chunk_size=8192),
+                    mimetype='video/mp4',
+                    headers={
+                        'Content-Disposition': f'attachment; filename="tiktok_video_{int(time.time())}.mp4"',
+                        'Content-Type': 'video/mp4',
+                        'Cache-Control': 'no-cache',
+                        'Accept-Ranges': 'bytes',
+                    }
+                )
         else:
-            return jsonify({'error': 'Failed to fetch video'}), response.status_code
+            return jsonify({'error': f'Failed to fetch {media_type}'}), response.status_code
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500
