@@ -142,7 +142,7 @@ def make_request(service_id, url, vid_id=None, username=None, post_id=None, twee
     
     headers = {
         "accept": "application/json, text/javascript, */*; q=0.01",
-        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-encoding": "gzip, deflate",  # Removed br and zstd to avoid Brotli compression issues
         "accept-language": "en-US,en;q=0.9",
         "connection": "keep-alive",
         "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -195,6 +195,7 @@ def make_request(service_id, url, vid_id=None, username=None, post_id=None, twee
     
     try:
         # Make request with automatic decompression
+        # Requests library automatically handles gzip/deflate decompression
         r = requests.post(endpoint, headers=headers, data=payload, timeout=30)
         
         # Ensure response is properly decoded
