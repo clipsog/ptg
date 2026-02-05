@@ -158,10 +158,21 @@ def make_request(service_id, url, vid_id=None, username=None, post_id=None, twee
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0"
     }
     
-    # Build payload exactly as in original zefame.py
     payload = {"service": str(service_id), "link": url}
     
-    # Add UUIDs based on service (must be added before other fields)
+    # Add service-specific fields
+    if vid_id:
+        payload["videoId"] = vid_id
+    if username:
+        payload["username"] = username
+    if post_id:
+        payload["postId"] = post_id
+    if tweet_id:
+        payload["tweetId"] = tweet_id
+    if link:
+        payload["link"] = link
+    
+    # Add UUIDs based on service
     uuids = {
         "229": "8c79ac73-cdc9-4e07-bb0e-9fef32df490b",  # TikTok Views
         "232": "d306834e-ea98-4d9a-b961-fcb3850ed777",  # TikTok Likes
@@ -181,16 +192,6 @@ def make_request(service_id, url, vid_id=None, username=None, post_id=None, twee
     
     if str(service_id) in uuids:
         payload["uuid"] = uuids[str(service_id)]
-    
-    # Add service-specific fields (after UUID)
-    if vid_id is not None:
-        payload["videoId"] = vid_id
-    if username is not None:
-        payload["username"] = username
-    if post_id is not None:
-        payload["postId"] = post_id
-    if tweet_id is not None:
-        payload["tweetId"] = tweet_id
     
     try:
         # Make request with automatic decompression
@@ -246,7 +247,7 @@ def tiktok_download():
         except:
             content_id = None
         
-        # Try multiple public APIs
+        # Try multiple public APIs (same as the HTML file uses)
         apis = [
             f'https://api.tiklydown.eu.org/api/download?url={requests.utils.quote(url)}',
             f'https://www.tikwm.com/api/?url={requests.utils.quote(url)}&count=12&cursor=0&web=1&hd=1',

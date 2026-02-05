@@ -527,6 +527,20 @@
                             </div>
                         `;
                     }
+                    // Fallback for old format (video_url without type)
+                    else if (data.video_url) {
+                        const proxyUrl = `/api/tiktok-proxy?url=${encodeURIComponent(data.video_url)}&type=video`;
+                        
+                        resultDiv.innerHTML = `
+                            <div style="color: white;">
+                                <p style="font-weight: 600; margin-bottom: 10px; margin-top: 0;">✓ Video Ready!</p>
+                                ${data.title ? `<p style="margin-bottom: 5px; font-size: 14px;"><strong>Title:</strong> ${data.title}</p>` : ''}
+                                ${data.author ? `<p style="margin-bottom: 10px; font-size: 14px;"><strong>Author:</strong> ${data.author}</p>` : ''}
+                                <button onclick="downloadVideo('${proxyUrl}', '${(data.title || 'tiktok-video').replace(/[^a-z0-9]/gi, '_')}.mp4')" style="display: block; padding: 15px 24px; background: white; color: #ff0050; border: none; border-radius: 8px; font-weight: 600; margin-top: 10px; width: 100%; text-align: center; box-sizing: border-box; font-size: 16px; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation;">⬇️ Download to Photos</button>
+                                <a href="${data.video_url}" target="_blank" style="display: block; padding: 12px 24px; background: rgba(255,255,255,0.3); color: white; border-radius: 8px; text-decoration: none; margin-top: 10px; width: 100%; text-align: center; box-sizing: border-box;">🔗 Preview Video</a>
+                            </div>
+                        `;
+                    }
                 } else {
                     resultDiv.innerHTML = `
                         <div style="color: #ffeb3b;">
