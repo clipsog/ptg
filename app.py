@@ -138,27 +138,28 @@ def parse_response(response):
 
 def make_request(service_id, url, vid_id=None, username=None, post_id=None, tweet_id=None, link=None):
     """Make API request to zefame"""
+    # Use the old endpoint (v2 seems to have different format)
     endpoint = 'https://app.zefame.com/api_free.php?action=order'
+    
+    # API key from user
+    api_key = 'b286a383996a1b5ba844277d82a51e44'
     
     headers = {
         "accept": "application/json, text/javascript, */*; q=0.01",
         "accept-encoding": "gzip, deflate",  # Removed br and zstd to avoid Brotli compression issues
         "accept-language": "en-US,en;q=0.9",
-        "connection": "keep-alive",
         "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "host": "app.zefame.com",
         "origin": "https://zefame.com",
         "referer": "https://zefame.com/",
-        "sec-ch-ua": "\"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"144\", \"Microsoft Edge\";v=\"144\"",
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": "\"Windows\"",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0"
     }
     
-    payload = {"service": str(service_id), "link": url}
+    # Build payload with API key
+    payload = {
+        "key": api_key,
+        "service": str(service_id),
+        "link": url
+    }
     
     # Add service-specific fields
     if vid_id:
