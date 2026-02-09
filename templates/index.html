@@ -276,6 +276,7 @@
             }
         }
     </style>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </head>
 <body>
     <div class="container">
@@ -288,9 +289,10 @@
             <div class="service-group" style="background: linear-gradient(135deg, #ff0050 0%, #00f2ea 100%); padding: 20px; border-radius: 15px; margin-bottom: 30px; color: white;">
                 <h2 style="color: white; margin-bottom: 15px;">⬇️ TikTok Video Downloader</h2>
                 <p style="margin-bottom: 15px; opacity: 0.9;">Download TikTok videos without watermark</p>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
                     <input type="text" id="tiktok-url" placeholder="Paste TikTok URL here..." style="flex: 1; min-width: 200px; padding: 12px; border: none; border-radius: 8px; font-size: 14px;">
-                    <button id="tiktok-download-btn" type="button" style="padding: 12px 24px; background: white; color: #ff0050; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; -webkit-tap-highlight-color: transparent; touch-action: manipulation;">Download</button>
+                    <button id="tiktok-download-video-btn" type="button" style="padding: 12px 20px; background: white; color: #ff0050; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; -webkit-tap-highlight-color: transparent; touch-action: manipulation;">Download Video</button>
+                    <button id="tiktok-download-image-btn" type="button" style="padding: 12px 20px; background: white; color: #00f2ea; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; -webkit-tap-highlight-color: transparent; touch-action: manipulation;">Download Image</button>
                 </div>
                 <div id="tiktok-result" style="margin-top: 15px; display: none; padding: 15px; background: rgba(255,255,255,0.2); border-radius: 8px;"></div>
             </div>
@@ -428,7 +430,10 @@
                     <label id="url-label" for="url">URL</label>
                     <input type="url" id="url" required placeholder="https://...">
                 </div>
-                <button type="submit" class="submit-btn" id="submit-btn">Submit Order</button>
+                <div id="turnstile-container" class="form-group" style="min-height: 65px; display: flex; justify-content: center; margin: 15px 0;"></div>
+                <p id="turnstile-hint" style="font-size: 13px; color: #555; margin: -5px 0 10px 0;">✓ Check the box above to verify you're human — then the Submit button will unlock.</p>
+                <button type="submit" class="submit-btn" id="submit-btn" disabled>Submit Order</button>
+                <p style="font-size: 11px; color: #888; margin-top: 12px;">If the verification box doesn't appear, <a href="https://zefame.com/free-tiktok-views" target="_blank" rel="noopener">complete your order on Zefame</a>.</p>
             </form>
             <div class="loading" id="loading">
                 <div class="spinner"></div>
@@ -440,10 +445,13 @@
     
     <script>
         let currentServiceId = null;
+        let turnstileWidgetId = null;
+        let turnstileToken = null;
+        const TURNSTILE_SITEKEY = '1xNc6EQ2d310No24n4M881grR0pQ0kAW8JQtq0EZ5PSCsACksZKTaz1GpPPnr0ZZIE97h2diXh6KLxa9DS8rRku9mchXMRf';
         
-        // TikTok Downloader
-        async function downloadTikTok() {
-            console.log('downloadTikTok called'); // Debug
+        // TikTok Downloader (prefer: 'video' | 'photo')
+        async function downloadTikTok(prefer) {
+            prefer = prefer || 'video';
             const urlInput = document.getElementById('tiktok-url');
             const resultDiv = document.getElementById('tiktok-result');
             
@@ -454,7 +462,6 @@
             
             const url = urlInput.value.trim();
             
-            // Always show result div
             resultDiv.style.display = 'block';
             resultDiv.style.visibility = 'visible';
             
@@ -471,13 +478,12 @@
             resultDiv.innerHTML = '<p style="margin: 0; color: white;">⏳ Processing... Please wait</p>';
             
             try {
-                console.log('Sending request for URL:', url); // Debug
                 const response = await fetch('/api/tiktok-download', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ url: url })
+                    body: JSON.stringify({ url: url, prefer: prefer })
                 });
                 
                 console.log('Response status:', response.status); // Debug
@@ -488,8 +494,18 @@
                 console.log('Response data:', data); // Debug
                 
                 if (data.status === 'success') {
+                    var isVideo = data.type === 'video' && data.video_url;
+                    var isPhoto = data.type === 'photo' && data.photo_urls && data.photo_urls.length > 0;
+                    if (prefer === 'video' && !isVideo && isPhoto) {
+                        resultDiv.innerHTML = '<p style="color: #ffeb3b; margin: 0;">This post has images only. Use <strong>Download Image</strong> to get them.</p>';
+                        return;
+                    }
+                    if (prefer === 'photo' && !isPhoto && isVideo) {
+                        resultDiv.innerHTML = '<p style="color: #ffeb3b; margin: 0;">This post is a video. Use <strong>Download Video</strong> to get it.</p>';
+                        return;
+                    }
                     // Handle videos
-                    if (data.type === 'video' && data.video_url) {
+                    if (isVideo) {
                         const proxyUrl = `/api/tiktok-proxy?url=${encodeURIComponent(data.video_url)}&type=video`;
                         
                         resultDiv.innerHTML = `
@@ -503,7 +519,7 @@
                         `;
                     }
                     // Handle photos
-                    else if (data.type === 'photo' && data.photo_urls && data.photo_urls.length > 0) {
+                    else if (isPhoto) {
                         const photos = data.photo_urls;
                         let photosHtml = '';
                         
@@ -614,50 +630,42 @@
         
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Page loaded, setting up TikTok downloader'); // Debug
-            
             const tiktokInput = document.getElementById('tiktok-url');
-            const downloadBtn = document.getElementById('tiktok-download-btn');
+            const videoBtn = document.getElementById('tiktok-download-video-btn');
+            const imageBtn = document.getElementById('tiktok-download-image-btn');
             
-            if (!downloadBtn) {
-                console.error('Download button not found!');
-                return;
-            }
-            
-            // Add Enter key support
             if (tiktokInput) {
                 tiktokInput.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter') {
                         e.preventDefault();
-                        downloadTikTok();
+                        downloadTikTok('video');
                     }
                 });
             }
             
-            // Ensure button works on mobile and desktop
-            function handleDownload() {
-                console.log('Download triggered!'); // Debug
-                downloadTikTok();
+            if (videoBtn) {
+                videoBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    downloadTikTok('video');
+                });
+                videoBtn.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, { passive: false });
             }
             
-            downloadBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                handleDownload();
-            });
-            
-            // Also add touch event for mobile (use touchstart for better responsiveness)
-            downloadBtn.addEventListener('touchstart', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                handleDownload();
-            }, { passive: false });
-            
-            // Fallback: direct onclick (for older browsers)
-            downloadBtn.onclick = function(e) {
-                e.preventDefault();
-                handleDownload();
-            };
+            if (imageBtn) {
+                imageBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    downloadTikTok('photo');
+                });
+                imageBtn.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, { passive: false });
+            }
         });
         
         // Cooldown management
@@ -768,6 +776,44 @@
         // Initial update
         updateAllCooldowns();
         
+        function renderTurnstile() {
+            const container = document.getElementById('turnstile-container');
+            if (!container || typeof turnstile === 'undefined') return;
+            container.innerHTML = '';
+            turnstileToken = null;
+            turnstileWidgetId = turnstile.render(container, {
+                sitekey: TURNSTILE_SITEKEY,
+                callback: function(token) {
+                    turnstileToken = token;
+                    var btn = document.getElementById('submit-btn');
+                    if (btn) btn.disabled = false;
+                    var hint = document.getElementById('turnstile-hint');
+                    if (hint) hint.innerHTML = '✓ Verified. You can submit your order.';
+                },
+                'error-callback': function() {
+                    turnstileToken = null;
+                    var btn = document.getElementById('submit-btn');
+                    if (btn) btn.disabled = true;
+                },
+                'expired-callback': function() {
+                    turnstileToken = null;
+                    var btn = document.getElementById('submit-btn');
+                    if (btn) btn.disabled = true;
+                }
+            });
+            document.getElementById('submit-btn').disabled = true;
+        }
+        
+        function resetTurnstile() {
+            turnstileToken = null;
+            if (typeof turnstile !== 'undefined' && turnstileWidgetId != null) {
+                try { turnstile.remove(turnstileWidgetId); } catch (e) {}
+                turnstileWidgetId = null;
+            }
+            const container = document.getElementById('turnstile-container');
+            if (container) container.innerHTML = '';
+        }
+        
         function openModal(serviceId, title, label) {
             // Check if service is on cooldown
             const remaining = getCooldownRemaining(serviceId);
@@ -783,9 +829,18 @@
             document.getElementById('result').style.display = 'none';
             document.getElementById('result').className = 'result';
             document.getElementById('modal').style.display = 'block';
+            function tryRender() {
+                if (typeof turnstile !== 'undefined') {
+                    renderTurnstile();
+                    return;
+                }
+                setTimeout(tryRender, 150);
+            }
+            tryRender();
         }
         
         function closeModal() {
+            resetTurnstile();
             document.getElementById('modal').style.display = 'none';
             document.getElementById('loading').style.display = 'none';
             document.getElementById('submit-btn').disabled = false;
@@ -797,6 +852,13 @@
             const submitBtn = document.getElementById('submit-btn');
             const loading = document.getElementById('loading');
             const result = document.getElementById('result');
+            
+            if (!turnstileToken) {
+                result.style.display = 'block';
+                result.className = 'result error';
+                result.innerHTML = '<h3>Verification required</h3><p>Please check the verification box above first. The Submit button unlocks after you complete it.</p><p style="margin-top:8px;font-size:13px;"><a href="https://zefame.com/free-tiktok-views" target="_blank" rel="noopener">Or complete your order on Zefame →</a></p>';
+                return;
+            }
             
             submitBtn.disabled = true;
             loading.style.display = 'block';
@@ -810,7 +872,8 @@
                     },
                     body: JSON.stringify({
                         service_id: currentServiceId,
-                        url: url
+                        url: url,
+                        cf_token: turnstileToken
                     })
                 });
                 
@@ -818,6 +881,10 @@
                 
                 loading.style.display = 'none';
                 result.style.display = 'block';
+                turnstileToken = null;
+                if (typeof turnstile !== 'undefined' && turnstileWidgetId != null) {
+                    try { turnstile.reset(turnstileWidgetId); } catch (e) {}
+                }
                 
                 // Parse and set cooldown if provided
                 if (data.cooldown && currentServiceId) {
@@ -859,6 +926,7 @@
                     result.innerHTML = `
                         <h3>✗ Error</h3>
                         <p>${data.message}</p>
+                        ${data.hint ? `<p style="margin-top:10px;font-size:13px;opacity:0.9;">${data.hint}</p>` : ''}
                         ${data.cooldown ? `<p><strong>⏱ Cooldown:</strong> ${data.cooldown}</p>` : ''}
                     `;
                 } else {
